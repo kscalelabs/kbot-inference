@@ -8,4 +8,4 @@ futures-util = "0.3.30"
 # imu = "0.2.2"
 ndarray = "0.16.1"
 ort = { version = "2.0.0-rc.6", features = [ "load-dynamic" ] }
-# robstride = "0.3.0"
+robstride = "0.3.0"

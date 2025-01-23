@@ -2,6 +2,9 @@ use ort::Error as OrtError;
 use ort::session::builder::GraphOptimizationLevel;
 use ort::session::Session;
 
+mod actuators;
+use actuators::Actuator;
+
 fn load_onnx_model(model_path: &str) -> Result<Session, OrtError> {
     let model = Session::builder()?
         .with_optimization_level(GraphOptimizationLevel::Level3)?
