@@ -45,6 +45,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Err("Expected one argument".into());
     }
     let model_path = &args[1];
-    run_model(model_path);
+    let _ =run_model(model_path);
     Ok(())
 }
