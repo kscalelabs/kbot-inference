@@ -71,7 +71,7 @@ impl Actuator {
                 },
                 _ => return Err(eyre::eyre!("Invalid port: {}", port)),
             };
-            
+
             supervisor.add_transport(port.clone(), transport).await?;
         }
 
@@ -86,7 +86,7 @@ impl Actuator {
         // Scan for motors on each port
         for port in &ports {
             let discovered_ids = supervisor.scan_bus(0xFD, port, actuators_config).await?;
-            
+
             for (idx, (motor_id, _)) in actuators_config.iter().enumerate() {
                 if discovered_ids.contains(motor_id) {
                     found_motors[idx] = true;
@@ -216,7 +216,7 @@ impl Actuator {
                 max_angle_change: Some(30.0f32.to_radians()),
                 max_velocity: Some(10.0f32.to_radians()),
             }),
-            
+
             // Right Arm (21-25)
             (21, ActuatorConfiguration {
                 actuator_type: ActuatorType::RobStride03,
@@ -243,7 +243,7 @@ impl Actuator {
                 max_angle_change: Some(30.0f32.to_radians()),
                 max_velocity: Some(10.0f32.to_radians()),
             }),
-            
+
             // Left Leg (31-35)
             (31, ActuatorConfiguration {
                 actuator_type: ActuatorType::RobStride04,
@@ -270,7 +270,7 @@ impl Actuator {
                 max_angle_change: Some(90.0f32.to_radians()),
                 max_velocity: Some(10.0f32.to_radians()),
             }),
-            
+
             // Right Leg (41-45)
             (41, ActuatorConfiguration {
                 actuator_type: ActuatorType::RobStride04,
