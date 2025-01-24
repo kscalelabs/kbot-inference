@@ -27,7 +27,7 @@ SLOWDOWN_FACTOR ?= 20.0
 # Common cargo run prefix
 CARGO_RUN := $(ONNX_ENV) RUST_LOG=debug cargo run
 
-.PHONY: run dry-run slow-run slow-dry-run read-sensors help
+.PHONY: run dry-run slow-run slow-dry-run read-sensors help zero-actuators zero-actuators-dry-run
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -46,3 +46,9 @@ slow-dry-run: ## Run the model at reduced speed (without hardware)
 
 read-sensors: ## Read and display sensor data
 	$(CARGO_RUN) --bin read_sensors
+
+zero-actuators: ## Zero all actuators on the robot
+	$(CARGO_RUN) --bin zero_actuators
+
+zero-actuators-dry-run: ## Test zeroing actuators without hardware access
+	$(CARGO_RUN) --bin zero_actuators -- --dry-run
