@@ -11,6 +11,32 @@ mod imu;
 use actuators::Actuator;
 use imu::IMU;
 
+// Mapping from the neural network index to the actuator ID, with a flag
+// indicating whether or not the actuator is oriented in the same direction
+// on the real robot as it is in the URDF.
+const ACTUATOR_ID_MAP: [(usize, u8, bool); 20] = [
+    (0, 31, true),  // left_hip_pitch_04
+    (1, 11, true),  // left_shoulder_pitch_03
+    (2, 41, true),  // right_hip_pitch_04
+    (3, 21, true),  // right_shoulder_pitch_03
+    (4, 32, true),  // left_hip_roll_03
+    (5, 12, true),  // left_shoulder_roll_03
+    (6, 42, true),  // right_hip_roll_03
+    (7, 22, true),  // right_shoulder_roll_03
+    (8, 33, true),  // left_hip_yaw_03
+    (9, 13, true),  // left_shoulder_yaw_02
+    (10, 43, true), // right_hip_yaw_03
+    (11, 23, true), // right_shoulder_yaw_02
+    (12, 34, true), // left_knee_04
+    (13, 14, true), // left_elbow_02
+    (14, 44, true), // right_knee_04
+    (15, 24, true), // right_elbow_02
+    (16, 35, true), // left_ankle_02
+    (17, 15, true), // left_wrist_02
+    (18, 45, true), // right_ankle_02
+    (19, 25, true), // right_wrist_02
+];
+
 fn load_onnx_model(model_path: &str) -> Result<Session, OrtError> {
     let model = Session::builder()?
         .with_optimization_level(GraphOptimizationLevel::Level3)?
@@ -20,21 +46,8 @@ fn load_onnx_model(model_path: &str) -> Result<Session, OrtError> {
     Ok(model)
 }
 
-// +---------------------------------------------------------+
-// | Active Observation Terms in Group: 'policy' (shape: (69,)) |
-// +-----------+---------------------------------+-----------+
-// |   Index   | Name                            |   Shape   |
-// +-----------+---------------------------------+-----------+
-// |     0     | kscale_imu_ang_vel              |    (3,)   |
-// |     1     | velocity_commands               |    (3,)   |
-// |     2     | projected_gravity               |    (3,)   |
-// |     3     | joint_pos                       |   (20,)   |
-// |     4     | joint_vel                       |   (20,)   |
-// |     5     | actions                         |   (20,)   |
-// +-----------+---------------------------------+-----------+
-
 async fn get_targets() -> Result<[f32; 3], Box<dyn std::error::Error>> {
-    Ok([1.0, 0.0, 0.0]) // x_vel, y_vel, rot
+    Ok([0.0, 0.0, 0.0]) // x_vel, y_vel, rot
 }
 
 async fn get_dof_pos_and_vel(
@@ -109,9 +122,9 @@ async fn run_model(model_path: &str) -> Result<(), Box<dyn std::error::Error>> {
     let model = load_onnx_model(model_path)?;
     tracing::info!("Model loaded");
 
-    let mut obs = ndarray::Array2::<f32>::zeros((1, 69));
+    let mut obs = ndarray::Array2::<f32>::zeros((1, 372));
 
-    // Gets the IMU reader.
+    // Gets the actuator and IMU readers.
     let kbot_actuators = Actuator::create_kbot_actuators();
     let kbot_actuator_ids = kbot_actuators.iter().map(|(id, _)| *id).collect::<Vec<_>>();
     let (imu, actuators) = tokio::try_join!(
@@ -143,18 +156,25 @@ async fn run_model(model_path: &str) -> Result<(), Box<dyn std::error::Error>> {
             get_dof_pos_and_vel(&actuators, &kbot_actuator_ids),
             get_imu_values(&imu)
         );
-        let targets = targets?;
-        let dof_values = dof_values?;
-        let imu_values = imu_values?;
         total_sensor_time += sensor_start.elapsed();
 
-        // Populate observation with returned values
+        // Populate the target values.
+        let targets = targets?;
         obs.slice_mut(ndarray::s![0, 0..3])
             .assign(&ndarray::Array1::from_vec(targets.to_vec()));
-        obs.slice_mut(ndarray::s![0, 3..43])
-            .assign(&ndarray::Array1::from_vec(dof_values.to_vec()));
-        obs.slice_mut(ndarray::s![0, 43..52])
+
+        // Populates the IMU values.
+        let imu_values = imu_values?;
+        obs.slice_mut(ndarray::s![0, 3..12])
             .assign(&ndarray::Array1::from_vec(imu_values.to_vec()));
+
+        // Populates the DOF values.
+        let dof_values = dof_values?;
+        obs.slice_mut(ndarray::s![0, 12..52])
+            .assign(&ndarray::Array1::from_vec(dof_values.to_vec()));
+
+        // Populates the action buffer.
+        obs.slice_mut(ndarray::s![0, 52..72]);
 
         let inference_start = tokio::time::Instant::now();
         let outputs = model.run(ort::inputs!["obs" => obs.clone()]?)?;
@@ -162,6 +182,7 @@ async fn run_model(model_path: &str) -> Result<(), Box<dyn std::error::Error>> {
         total_inference_time += inference_start.elapsed();
 
         let action_start = tokio::time::Instant::now();
+
         // Copy actions into the next step of the observation.
         let actions_array = actions.into_shape_with_order(ndarray::Ix2(1, 20))?;
         obs.slice_mut(ndarray::s![0, 49..69])
@@ -185,12 +206,12 @@ async fn run_model(model_path: &str) -> Result<(), Box<dyn std::error::Error>> {
             let avg_action_time = total_action_time.as_secs_f32() * 1000.0 / loop_count as f32;
 
             tracing::info!(
-                "Performance: Loop rate: {:.1} Hz, Sensor time: {:.2}ms, Inference time: {:.2}ms, Action time: {:.2}ms",
-                loop_rate,
-                avg_sensor_time,
-                avg_inference_time,
-                avg_action_time
-            );
+                    "Performance: Loop rate: {:.1} Hz, Sensor time: {:.2}ms, Inference time: {:.2}ms, Action time: {:.2}ms",
+                    loop_rate,
+                    avg_sensor_time,
+                    avg_inference_time,
+                    avg_action_time
+                );
 
             // Reset counters
             loop_count = 0;
