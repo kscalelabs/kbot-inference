@@ -1,4 +1,8 @@
-#.gitignore
+# .gitignore
 
+# Python
+__pycache__/
+
+# Rust
 /target
 Cargo.lock

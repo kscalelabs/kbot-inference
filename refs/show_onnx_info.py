@@ -1,12 +1,27 @@
 """Script to show the information about an Onnx model."""
 
 import argparse
-from typing import Dict, List
+from typing import TypedDict, Sequence
+import numpy as np
 
 import onnx
 
 
-def get_input_output_info(model: onnx.ModelProto) -> Dict[str, List[Dict]]:
+class InputOutputInfo(TypedDict):
+    name: str
+    shape: list[int | str]
+    dtype: np.dtype
+
+class ModelInfo(TypedDict):
+    inputs: list[InputOutputInfo]
+    outputs: list[InputOutputInfo]
+
+class NodeInfo(TypedDict):
+    op_type: str
+    inputs: list[str]
+    outputs: list[str]
+
+def get_input_output_info(model: onnx.ModelProto) -> ModelInfo:
     """Extract input and output information from the model."""
     inputs = []
     outputs = []
@@ -42,7 +57,7 @@ def get_input_output_info(model: onnx.ModelProto) -> Dict[str, List[Dict]]:
     return {"inputs": inputs, "outputs": outputs}
 
 
-def get_node_info(model: onnx.ModelProto) -> List[Dict]:
+def get_node_info(model: onnx.ModelProto) -> Sequence[NodeInfo]:
     """Extract information about the model's nodes."""
     nodes = []
     for node in model.graph.node:
