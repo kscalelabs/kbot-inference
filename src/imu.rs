@@ -1,6 +1,6 @@
 use eyre::Result;
 use hiwonder::{ImuFrequency, IMU as HiwonderIMU};
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, RwLock};
 use tokio::task::JoinHandle;
 use tracing::{error, info};
 
