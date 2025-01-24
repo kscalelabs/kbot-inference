@@ -94,7 +94,7 @@ async fn run_model(model_path: &str) -> Result<(), Box<dyn std::error::Error>> {
     let mut obs = ndarray::Array2::<f32>::zeros((1, 69));
 
     // Gets the IMU reader.
-    let imu = IMU::new("/dev/ttyUSB0", 9600).await?;
+    let imu = IMU::new(&["/dev/ttyUSB0", "/dev/ttyCH341USB0"], 9600).await?;
     let actuators = Actuator::new(
         vec!["can0", "can1", "can2", "can3"],
         Duration::from_millis(100),

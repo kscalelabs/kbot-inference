@@ -46,30 +46,41 @@ pub struct IMU {
 }
 
 impl IMU {
-    pub async fn new(interface: &str, baud_rate: u32) -> Result<Self> {
-        info!(
-            "Initializing KBotIMU with interface: {} at {} baud",
-            interface, baud_rate
-        );
+    pub async fn new(interfaces: &[&str], baud_rate: u32) -> Result<Self> {
+        if interfaces.is_empty() {
+            return Err(eyre::eyre!("No interfaces provided"));
+        }
 
-        let mut imu = match HiwonderIMU::new(interface, baud_rate) {
-            Ok(imu) => {
-                info!("Successfully created IMU reader");
-                imu
+        for interface in interfaces {
+            info!(
+                "Attempting to initialize KBotIMU with interface: {} at {} baud",
+                interface, baud_rate
+            );
+
+            match HiwonderIMU::new(interface, baud_rate) {
+                Ok(mut imu) => {
+                    info!("Successfully created IMU reader on {}", interface);
+                    // Set the frequency to 100 Hz.
+                    if let Err(e) = imu.set_frequency(ImuFrequency::Hz100) {
+                        error!("Failed to set IMU frequency: {}", e);
+                        continue;
+                    }
+
+                    return Ok(IMU {
+                        imu: Arc::new(Mutex::new(imu)),
+                        data: Arc::new(RwLock::new(ImuValues::default())),
+                    });
+                }
+                Err(e) => {
+                    error!("Failed to create IMU reader on {}: {}", interface, e);
+                    continue;
+                }
             }
-            Err(e) => {
-                error!("Failed to create IMU reader: {}", e);
-                return Err(eyre::eyre!("Failed to create IMU reader: {}", e));
-            }
-        };
+        }
 
-        // Set the frequency to 100 Hz.
-        imu.set_frequency(ImuFrequency::Hz100)?;
-
-        Ok(IMU {
-            imu: Arc::new(Mutex::new(imu)),
-            data: Arc::new(RwLock::new(ImuValues::default())),
-        })
+        Err(eyre::eyre!(
+            "Failed to initialize IMU on any provided interface"
+        ))
     }
 
     async fn get_imu(&self) -> Result<MutexGuard<HiwonderIMU>> {

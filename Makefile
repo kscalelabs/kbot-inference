@@ -5,7 +5,7 @@ UNAME_S := $(shell uname -s)
 
 # ONNX Runtime settings for Linux
 ifeq ($(UNAME_S),Linux)
-    ONNX_ENV := ORT_STRATEGY=system ORT_DYLIB_PATH=/usr/local/lib/libonnxruntime.so
+    ONNX_ENV := ORT_STRATEGY=system ORT_DYLIB_PATH=/usr/local/lib/onnxruntime/libonnxruntime.so
 else
     ONNX_ENV :=
 endif
