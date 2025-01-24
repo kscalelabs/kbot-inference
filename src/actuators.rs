@@ -3,10 +3,12 @@ use robstride::{
     ActuatorConfiguration, ActuatorType, CH341Transport, ControlConfig, SocketCanTransport,
     Supervisor, TransportType,
 };
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Mutex;
 
+#[derive(Clone)]
 pub struct ActuatorCommand {
     pub actuator_id: u32,
     pub position: Option<f64>,
@@ -159,6 +161,102 @@ impl Actuator {
             });
         }
         Ok(results)
+    }
+
+    pub async fn command_actuators_slowed(
+        &self,
+        start_commands: Vec<ActuatorCommand>,
+        end_commands: Vec<ActuatorCommand>,
+        total_delay: Duration,
+        num_steps: usize,
+    ) -> Result<Vec<ActionResult>> {
+        if total_delay.is_zero() {
+            return Err(eyre::eyre!("Total delay must be greater than zero"));
+        }
+        if num_steps == 0 {
+            return Err(eyre::eyre!("Number of steps must be greater than zero"));
+        }
+
+        let start_command_map: HashMap<u32, ActuatorCommand> = start_commands
+            .into_iter()
+            .map(|cmd| (cmd.actuator_id, cmd))
+            .collect();
+        let end_command_map: HashMap<u32, ActuatorCommand> = end_commands
+            .into_iter()
+            .map(|cmd| (cmd.actuator_id, cmd))
+            .collect();
+
+        // Make sure the start and end commands have the same actuator IDs
+        if start_command_map
+            .keys()
+            .collect::<std::collections::HashSet<_>>()
+            != end_command_map
+                .keys()
+                .collect::<std::collections::HashSet<_>>()
+        {
+            return Err(eyre::eyre!(
+                "Start and end commands must have the same actuator IDs"
+            ));
+        }
+
+        let step_delay = total_delay.div_f32(num_steps as f32);
+        let mut final_results = vec![];
+
+        for step in 0..num_steps {
+            let t = step as f32 / (num_steps - 1) as f32;
+            let mut interpolated_commands = vec![];
+
+            // Interpolate commands for all actuator IDs present in either map
+            for actuator_id in start_command_map
+                .keys()
+                .chain(end_command_map.keys())
+                .copied()
+                .collect::<std::collections::HashSet<_>>()
+            {
+                let start_cmd = start_command_map.get(&actuator_id);
+                let end_cmd = end_command_map.get(&actuator_id);
+
+                let interpolated_cmd = ActuatorCommand {
+                    actuator_id,
+                    position: match (
+                        start_cmd.and_then(|c| c.position),
+                        end_cmd.and_then(|c| c.position),
+                    ) {
+                        (Some(start), Some(end)) => Some(start * (1.0 - t as f64) + end * t as f64),
+                        (Some(start), None) => Some(start),
+                        (None, Some(end)) => Some(end),
+                        (None, None) => None,
+                    },
+                    velocity: match (
+                        start_cmd.and_then(|c| c.velocity),
+                        end_cmd.and_then(|c| c.velocity),
+                    ) {
+                        (Some(start), Some(end)) => Some(start * (1.0 - t as f64) + end * t as f64),
+                        (Some(start), None) => Some(start),
+                        (None, Some(end)) => Some(end),
+                        (None, None) => None,
+                    },
+                    torque: match (
+                        start_cmd.and_then(|c| c.torque),
+                        end_cmd.and_then(|c| c.torque),
+                    ) {
+                        (Some(start), Some(end)) => Some(start * (1.0 - t as f64) + end * t as f64),
+                        (Some(start), None) => Some(start),
+                        (None, Some(end)) => Some(end),
+                        (None, None) => None,
+                    },
+                };
+                interpolated_commands.push(interpolated_cmd);
+            }
+
+            let results = self.command_actuators(interpolated_commands).await?;
+            if step == num_steps - 1 {
+                final_results = results;
+            }
+            tokio::time::sleep(step_delay).await;
+        }
+
+        Ok(final_results)
     }
 
     pub async fn configure_actuator(&self, config: ConfigureRequest) -> Result<ActionResponse> {

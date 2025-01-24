@@ -10,7 +10,14 @@ else
     ONNX_ENV :=
 endif
 
-# Runs the inference script with the specified model
 run:
-	$(ONNX_ENV) RUST_LOG=debug cargo run -- position_control.onnx
+	$(ONNX_ENV) RUST_LOG=debug cargo run --bin run_model -- position_control.onnx
 .PHONY: run
+
+dry-run:
+	$(ONNX_ENV) RUST_LOG=debug cargo run --bin run_model -- position_control.onnx --dry-run
+.PHONY: dry-run
+
+read-sensors:
+	$(ONNX_ENV) RUST_LOG=info cargo run --bin read_sensors
+.PHONY: read-sensors
