@@ -1,4 +1,8 @@
 # requirements.txt
 
+colorlogging
+matplotlib
+numpy
 onnx
 onnxruntime
+pandas

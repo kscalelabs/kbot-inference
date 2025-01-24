@@ -6,20 +6,12 @@
 // Or using make:
 //   make zero-actuators
 
-use clap::Parser;
 use kbot::{actuators::ConfigureRequest, initialize_hardware, initialize_logging};
 use std::time::Duration;
 
-#[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
-struct Args {
-    /// Run without hardware access
-    #[arg(long)]
-    dry_run: bool,
-}
-
-async fn zero_actuators(dry_run: bool) -> Result<(), Box<dyn std::error::Error>> {
-    let (_, actuators, kbot_actuator_ids) = initialize_hardware(dry_run).await?;
+async fn zero_actuators() -> Result<(), Box<dyn std::error::Error>> {
+    // Always read the actuators, even if we're in dry run mode.
+    let (_, actuators, kbot_actuator_ids) = initialize_hardware(false, false).await?;
 
     if let Some(actuators) = actuators {
         tracing::info!("Starting actuator zeroing process...");
@@ -39,7 +31,7 @@ async fn zero_actuators(dry_run: bool) -> Result<(), Box<dyn std::error::Error>>
             tracing::info!("Disabled actuator {}", actuator_id);
         }
 
-        // Wait a moment for any motion to stop
+        // Wait a moment for any motion to stop``
         tokio::time::sleep(Duration::from_secs(1)).await;
 
         // Then zero each actuator
@@ -86,6 +78,5 @@ async fn zero_actuators(dry_run: bool) -> Result<(), Box<dyn std::error::Error>>
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     initialize_logging().await;
-    let args = Args::parse();
-    zero_actuators(args.dry_run).await
+    zero_actuators().await
 }

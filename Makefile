@@ -22,7 +22,7 @@ endif
 MODEL_PATH ?= position_control.onnx
 
 # Default slowdown factor for slow modes
-SLOWDOWN_FACTOR ?= 20.0
+SLOWDOWN_FACTOR ?= 250.0
 
 # Common cargo run prefix
 CARGO_RUN := $(ONNX_ENV) RUST_LOG=debug cargo run
@@ -39,16 +39,16 @@ dry-run: ## Run the model without hardware access
 	$(CARGO_RUN) --bin run_model -- $(MODEL_PATH) --dry-run
 
 slow-run: ## Run the model at reduced speed (with hardware)
-	$(CARGO_RUN) --bin run_model -- $(MODEL_PATH) --slowdown-factor $(SLOWDOWN_FACTOR)
+	$(CARGO_RUN) --bin run_model -- $(MODEL_PATH) --slowdown-factor $(SLOWDOWN_FACTOR) --torque-enabled --log-nn-io
 
 slow-dry-run: ## Run the model at reduced speed (without hardware)
 	$(CARGO_RUN) --bin run_model -- $(MODEL_PATH) --dry-run --slowdown-factor $(SLOWDOWN_FACTOR)
 
-read-sensors: ## Read and display sensor data
+log-sensors: ## Read and display sensor data
 	$(CARGO_RUN) --bin read_sensors -- --duration 60 --output-dir sensor_logs
+
+read-sensors: ## Read and display sensor data
+	$(CARGO_RUN) --bin read_sensors
 
 zero-actuators: ## Zero all actuators on the robot
 	$(CARGO_RUN) --bin zero_actuators
-
-zero-actuators-dry-run: ## Test zeroing actuators without hardware access
-	$(CARGO_RUN) --bin zero_actuators -- --dry-run

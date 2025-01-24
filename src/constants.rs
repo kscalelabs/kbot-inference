@@ -1,27 +1,27 @@
-// Mapping from the neural network index to the actuator ID, with a flag
-// indicating whether or not the actuator is oriented in the same direction
-// on the real robot as it is in the URDF.
+// Mapping from the neural network index to the actuator ID. This also includes
+// a flag indicating whether or not the real actuator orientation is flipped
+// relative to the URDF model, and the lower and upper limits of the actuator.
 pub const ACTUATOR_ID_MAP: [(usize, u8, bool); 20] = [
-    (0, 31, true),  // left_hip_pitch_04
-    (1, 11, true),  // left_shoulder_pitch_03
-    (2, 41, true),  // right_hip_pitch_04
-    (3, 21, true),  // right_shoulder_pitch_03
-    (4, 32, true),  // left_hip_roll_03
-    (5, 12, true),  // left_shoulder_roll_03
-    (6, 42, true),  // right_hip_roll_03
-    (7, 22, true),  // right_shoulder_roll_03
-    (8, 33, true),  // left_hip_yaw_03
-    (9, 13, true),  // left_shoulder_yaw_02
-    (10, 43, true), // right_hip_yaw_03
-    (11, 23, true), // right_shoulder_yaw_02
-    (12, 34, true), // left_knee_04
-    (13, 14, true), // left_elbow_02
-    (14, 44, true), // right_knee_04
-    (15, 24, true), // right_elbow_02
-    (16, 35, true), // left_ankle_02
-    (17, 15, true), // left_wrist_02
-    (18, 45, true), // right_ankle_02
-    (19, 25, true), // right_wrist_02
+    (0, 31, false),  // left_hip_pitch_04
+    (1, 11, false),  // left_shoulder_pitch_03
+    (2, 41, false),  // right_hip_pitch_04
+    (3, 21, false),  // right_shoulder_pitch_03
+    (4, 32, false),  // left_hip_roll_03
+    (5, 12, true),   // left_shoulder_roll_03
+    (6, 42, false),  // right_hip_roll_03
+    (7, 22, false),  // right_shoulder_roll_03
+    (8, 33, false),  // left_hip_yaw_03
+    (9, 13, false),  // left_shoulder_yaw_02
+    (10, 43, false), // right_hip_yaw_03
+    (11, 23, true),  // right_shoulder_yaw_02
+    (12, 34, true),  // left_knee_04
+    (13, 14, false), // left_elbow_02
+    (14, 44, true),  // right_knee_04
+    (15, 24, false), // right_elbow_02
+    (16, 35, true),  // left_ankle_02
+    (17, 15, false), // left_wrist_02
+    (18, 45, false), // right_ankle_02
+    (19, 25, false), // right_wrist_02
 ];
 
 // This is a mapping from the actuator ID to the PID gains. During training,
@@ -76,4 +76,27 @@ pub const NN_HOME_POSITION: [(usize, f32); 20] = [
     (17, 0.0),   // left_wrist_02
     (18, 30.0),  // right_ankle_02
     (19, 0.0),   // right_wrist_02
+];
+
+pub const NN_JOINT_LIMITS: [(usize, f32, f32); 20] = [
+    (0, -90.0, 90.0),  // left_hip_pitch_04
+    (1, 0.0, 180.0),   // left_shoulder_pitch_03
+    (2, -90.0, 90.0),  // right_hip_pitch_04
+    (3, -180.0, 0.0),  // right_shoulder_pitch_03
+    (4, -182.5, 20.0), // left_hip_roll_03
+    (5, -27.5, 208.0), // left_shoulder_roll_03
+    (6, -20.0, 182.5), // right_hip_roll_03
+    (7, -27.5, 208.0), // right_shoulder_roll_03
+    (8, -90.0, 90.0),  // left_hip_yaw_03
+    (9, -90.0, 90.0),  // left_shoulder_yaw_02
+    (10, -90.0, 90.0), // right_hip_yaw_03
+    (11, -90.0, 90.0), // right_shoulder_yaw_02
+    (12, -120.0, 0.0), // left_knee_04
+    (13, -145.0, 0.0), // left_elbow_02
+    (14, 0.0, 120.0),  // right_knee_04
+    (15, 0.0, 145.0),  // right_elbow_02
+    (16, -40.0, 40.0), // left_ankle_02
+    (17, 0.0, 90.0),   // left_wrist_02
+    (18, -40.0, 40.0), // right_ankle_02
+    (19, 0.0, 90.0),   // right_wrist_02
 ];

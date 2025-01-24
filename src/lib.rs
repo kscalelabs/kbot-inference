@@ -15,6 +15,7 @@ pub async fn initialize_logging() {
 
 pub async fn initialize_hardware(
     dry_run: bool,
+    torque_enabled: bool,
 ) -> Result<(Option<imu::IMU>, Option<actuators::Actuator>, Vec<u8>), Box<dyn std::error::Error>> {
     if !dry_run {
         let kbot_actuators = actuators::Actuator::create_kbot_actuators();
@@ -29,6 +30,33 @@ pub async fn initialize_hardware(
                 &kbot_actuators,
             )
         )?;
+
+        // Disable torque on all actuators
+        for id in &kbot_actuator_ids {
+            let row = constants::ACTUATOR_KP_KD
+                .iter()
+                .find(|(id, _, _)| *id == *id);
+            if let Some(row) = row {
+                let kp = row.1;
+                let kd = row.2;
+                if let Err(e) = actuators
+                    .configure_actuator(actuators::ConfigureRequest {
+                        actuator_id: *id as u32,
+                        kp: Some(kp as f64),
+                        kd: Some(kd as f64),
+                        max_torque: None,
+                        torque_enabled: Some(torque_enabled),
+                        zero_position: None,
+                        new_actuator_id: None,
+                    })
+                    .await
+                {
+                    tracing::warn!("Failed to configure torque on actuator {}: {}", id, e);
+                }
+            } else {
+                tracing::warn!("No kp and kd found for actuator {}", id);
+            }
+        }
 
         Ok((Some(imu), Some(actuators), kbot_actuator_ids))
     } else {

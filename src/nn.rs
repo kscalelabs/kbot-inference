@@ -19,7 +19,7 @@ impl NeuralNetworkRunner {
             .with_intra_threads(4)?
             .commit_from_file(model_path)?;
 
-        let obs = ndarray::Array2::<f32>::zeros((1, 372));
+        let obs = ndarray::Array2::<f32>::zeros((1, 72));
 
         // Populate the last command vector.
         let mut start_commands = vec![];
@@ -35,6 +35,14 @@ impl NeuralNetworkRunner {
         Ok(Self { model, obs })
     }
 
+    pub fn get_observation_size(&self) -> usize {
+        self.obs.ncols()
+    }
+
+    pub fn get_action_size(&self) -> usize {
+        ACTUATOR_ID_MAP.len()
+    }
+
     pub async fn get_targets() -> Result<[f32; 3], Box<dyn std::error::Error>> {
         Ok([0.0, 0.0, 0.0]) // x_vel, y_vel, rot
     }
@@ -42,6 +50,7 @@ impl NeuralNetworkRunner {
     pub async fn get_dof_pos_and_vel(
         actuators: &Option<Actuator>,
         actuator_ids: &Vec<u8>,
+        slowdown_factor: f32,
     ) -> Result<[f32; 40], Box<dyn std::error::Error>> {
         if let Some(actuators) = actuators {
             let state = actuators.get_actuators_state(actuator_ids.to_vec()).await?;
@@ -57,6 +66,14 @@ impl NeuralNetworkRunner {
                 .map(|s| s.velocity)
                 .map(|v| v.unwrap_or(0.0))
                 .collect::<Vec<_>>();
+
+            // Multiply velocities by slowdown factor
+            if slowdown_factor != 1.0 {
+                velocities = velocities
+                    .iter()
+                    .map(|v| v * slowdown_factor as f64)
+                    .collect::<Vec<_>>();
+            }
 
             // Subtract off the home position
             for (nn_idx, home_pos) in NN_HOME_POSITION.iter() {
@@ -119,9 +136,11 @@ impl NeuralNetworkRunner {
                 imu_values.gyro_x as f32,
                 imu_values.gyro_y as f32,
                 imu_values.gyro_z as f32,
-                imu_values.accel_x as f32,
-                imu_values.accel_y as f32,
-                imu_values.accel_z as f32,
+                // Hiwonder IMU values are normalized by gravity. Need to de-normalize them.
+                (imu_values.accel_x as f32) * 9.81,
+                (imu_values.accel_y as f32) * 9.81,
+                (imu_values.accel_z as f32) * 9.81,
+                // Gravity vector being normalized is correct.
                 gravity[0],
                 gravity[1],
                 gravity[2],
@@ -139,10 +158,19 @@ impl NeuralNetworkRunner {
         // Convert from radians to degrees.
         let actions = actions * 180.0 / std::f32::consts::PI;
 
+        // Apply scaling factor.
+        let actions = actions * 0.5;
+
         // Add back the home position
         let mut final_actions = actions.to_owned();
         for (nn_idx, home_pos) in NN_HOME_POSITION.iter() {
             final_actions[[0, *nn_idx]] += home_pos;
+        }
+
+        // Clip to the desired actuator limits.
+        for (nn_idx, lower_limit, upper_limit) in NN_JOINT_LIMITS.iter() {
+            final_actions[[0, *nn_idx]] =
+                final_actions[[0, *nn_idx]].clamp(*lower_limit, *upper_limit);
         }
 
         // Pair the neural network action ID with the actuator ID
@@ -150,7 +178,8 @@ impl NeuralNetworkRunner {
             .iter()
             .map(|(nn_idx, actuator_id, is_inverted)| {
                 let actuator_action = final_actions[[0, *nn_idx]];
-                // Invert the actuator action if needed.
+
+                // Invert the actuator action to go from URDF space to actuator space if needed.
                 let actuator_action = if *is_inverted {
                     -actuator_action
                 } else {
@@ -221,11 +250,12 @@ impl NeuralNetworkRunner {
         imu: &Option<IMU>,
         actuators: &Option<Actuator>,
         actuator_ids: &Vec<u8>,
-    ) -> Result<Duration, Box<dyn std::error::Error>> {
+        slowdown_factor: f32,
+    ) -> Result<(ndarray::Array2<f32>, Duration), Box<dyn std::error::Error>> {
         let sensor_start = tokio::time::Instant::now();
         let (targets, dof_values, imu_values) = tokio::join!(
             Self::get_targets(),
-            Self::get_dof_pos_and_vel(actuators, actuator_ids),
+            Self::get_dof_pos_and_vel(actuators, actuator_ids, slowdown_factor),
             Self::get_imu_values(imu)
         );
         let sensor_time = sensor_start.elapsed();
@@ -246,19 +276,15 @@ impl NeuralNetworkRunner {
             .slice_mut(ndarray::s![0, 12..52])
             .assign(&ndarray::Array1::from_vec(dof_values.to_vec()));
 
-        let new_past_actions = self.obs.slice(ndarray::s![0, 52..352]).to_owned();
-        self.obs
-            .slice_mut(ndarray::s![0, 72..372])
-            .assign(&new_past_actions);
-
-        Ok(sensor_time)
+        Ok((self.obs.clone(), sensor_time))
     }
 
     pub fn run_inference(
         &mut self,
+        obs: ndarray::Array2<f32>,
     ) -> Result<(ndarray::Array2<f32>, Duration), Box<dyn std::error::Error>> {
         let inference_start = tokio::time::Instant::now();
-        let outputs = self.model.run(ort::inputs!["obs" => self.obs.clone()]?)?;
+        let outputs = self.model.run(ort::inputs!["obs" => obs]?)?;
         let actions = outputs[0].try_extract_tensor::<f32>()?;
         let inference_time = inference_start.elapsed();
 
@@ -269,9 +295,6 @@ impl NeuralNetworkRunner {
             .slice_mut(ndarray::s![0, 52..72])
             .assign(&actions_array.slice(ndarray::s![0, ..]));
 
-        let scale = 0.5;
-        let output_actions = actions_array.map(|x| x * scale);
-
-        Ok((output_actions, inference_time))
+        Ok((actions_array.to_owned(), inference_time))
     }
 }

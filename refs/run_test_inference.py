@@ -1,18 +1,20 @@
 """Script to run inference using an ONNX model."""
 
 import argparse
-import numpy as np
-import onnxruntime as ort
-import onnx
-from typing import TypedDict
 import time
 from statistics import mean, stdev
+from typing import TypedDict
+
+import numpy as np
+import onnx
+import onnxruntime as ort
 
 
 class InputInfo(TypedDict):
     name: str
     shape: list[int | str]
     dtype: np.dtype
+
 
 def create_random_input(input_info: InputInfo) -> np.ndarray:
     """Create random input data based on input info."""
@@ -26,11 +28,9 @@ def create_random_input(input_info: InputInfo) -> np.ndarray:
     else:
         raise ValueError(f"Unsupported dtype: {dtype}")
 
+
 def run_inference(
-    model_path: str,
-    num_runs: int = 1,
-    benchmark: bool = False,
-    warmup_runs: int = 3
+    model_path: str, num_runs: int = 1, benchmark: bool = False, warmup_runs: int = 3
 ) -> None:
     """Run inference on the ONNX model."""
     # Load model and get input info
@@ -43,13 +43,15 @@ def run_inference(
         shape = []
         for dim in input_data.type.tensor_type.shape.dim:
             shape.append(dim.dim_value if dim.dim_value else "dynamic")
-        input_info.append({
-            "name": input_data.name,
-            "shape": shape,
-            "dtype": onnx.mapping.TENSOR_TYPE_TO_NP_TYPE[
-                input_data.type.tensor_type.elem_type
-            ]
-        })
+        input_info.append(
+            {
+                "name": input_data.name,
+                "shape": shape,
+                "dtype": onnx.mapping.TENSOR_TYPE_TO_NP_TYPE[
+                    input_data.type.tensor_type.elem_type
+                ],
+            }
+        )
 
     print("\n=== Model Inputs ===")
     for info in input_info:
@@ -106,37 +108,31 @@ def run_inference(
                 print(f"Type: {outputs[idx].dtype}")
                 print(f"Sample values: {outputs[idx].flatten()[:5]}...")
 
-def main():
+
+def main() -> None:
     parser = argparse.ArgumentParser(description="Run inference on an ONNX model")
     parser.add_argument("model_path", type=str, help="Path to the ONNX model file")
     parser.add_argument(
-        "--num-runs",
-        type=int,
-        default=1,
-        help="Number of inference runs to perform"
+        "--num-runs", type=int, default=1, help="Number of inference runs to perform"
     )
     parser.add_argument(
         "--benchmark",
         action="store_true",
-        help="Run in benchmark mode to measure performance"
+        help="Run in benchmark mode to measure performance",
     )
     parser.add_argument(
         "--warmup-runs",
         type=int,
         default=3,
-        help="Number of warmup runs to perform in benchmark mode"
+        help="Number of warmup runs to perform in benchmark mode",
     )
     args = parser.parse_args()
 
     try:
-        run_inference(
-            args.model_path,
-            args.num_runs,
-            args.benchmark,
-            args.warmup_runs
-        )
+        run_inference(args.model_path, args.num_runs, args.benchmark, args.warmup_runs)
     except Exception as e:
         print(f"Error running inference: {e}")
+
 
 if __name__ == "__main__":
     main()

@@ -1,9 +1,9 @@
 """Script to show the information about an Onnx model."""
 
 import argparse
-from typing import TypedDict, Sequence
-import numpy as np
+from typing import Sequence, TypedDict
 
+import numpy as np
 import onnx
 
 
@@ -12,14 +12,17 @@ class InputOutputInfo(TypedDict):
     shape: list[int | str]
     dtype: np.dtype
 
+
 class ModelInfo(TypedDict):
     inputs: list[InputOutputInfo]
     outputs: list[InputOutputInfo]
+
 
 class NodeInfo(TypedDict):
     op_type: str
     inputs: list[str]
     outputs: list[str]
+
 
 def get_input_output_info(model: onnx.ModelProto) -> ModelInfo:
     """Extract input and output information from the model."""

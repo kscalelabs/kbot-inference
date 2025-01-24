@@ -6,3 +6,7 @@ __pycache__/
 # Rust
 /target
 Cargo.lock
+
+# Data
+sensor_logs_*/
+nn_logs_*/

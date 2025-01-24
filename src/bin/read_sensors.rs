@@ -8,7 +8,7 @@
 //   make read-sensors
 
 use clap::Parser;
-use kbot::{actuators::Actuator, imu::IMU};
+use kbot::initialize_hardware;
 use std::{fs::File, io::Write, path::PathBuf, time::Duration};
 use time::OffsetDateTime;
 use tracing_subscriber::FmtSubscriber; // Using crate name from Cargo.toml
@@ -50,19 +50,8 @@ async fn run_sensor_logging(args: Args) -> Result<(), Box<dyn std::error::Error>
         "timestamp,actuator_id,position,velocity,torque,temperature,online"
     )?;
 
-    // Initialize hardware
-    let kbot_actuators = Actuator::create_kbot_actuators();
-    let kbot_actuator_ids = kbot_actuators.iter().map(|(id, _)| *id).collect::<Vec<_>>();
-
-    let (imu, actuators) = tokio::try_join!(
-        IMU::new(&["/dev/ttyUSB0", "/dev/ttyCH341USB0"], 9600),
-        Actuator::new(
-            vec!["can0", "can1", "can2", "can3", "can4"],
-            Duration::from_millis(100),
-            Duration::from_millis(20),
-            &kbot_actuators,
-        )
-    )?;
+    // Configures the IMU and actuators.
+    let (imu, actuators, kbot_actuator_ids) = initialize_hardware(false, false).await?;
 
     // Set up timing
     let target_loop_interval = Duration::from_secs_f64(1.0 / args.rate);
@@ -93,40 +82,44 @@ async fn run_sensor_logging(args: Args) -> Result<(), Box<dyn std::error::Error>
         let now = OffsetDateTime::now_local()?.unix_timestamp_nanos() as f64 / 1e9;
 
         // Read and log IMU values
-        if let Ok(imu_values) = imu.get_values().await {
-            writeln!(
-                imu_file,
-                "{:.6},{:.6},{:.6},{:.6},{:.6},{:.6},{:.6},{:.6},{:.6},{:.6}",
-                now,
-                imu_values.accel_x,
-                imu_values.accel_y,
-                imu_values.accel_z,
-                imu_values.gyro_x,
-                imu_values.gyro_y,
-                imu_values.gyro_z,
-                imu_values.roll,
-                imu_values.pitch,
-                imu_values.yaw
-            )?;
+        if let Some(imu_ref) = &imu {
+            if let Ok(imu_values) = imu_ref.get_values().await {
+                writeln!(
+                    imu_file,
+                    "{:.6},{:.6},{:.6},{:.6},{:.6},{:.6},{:.6},{:.6},{:.6},{:.6}",
+                    now,
+                    imu_values.accel_x,
+                    imu_values.accel_y,
+                    imu_values.accel_z,
+                    imu_values.gyro_x,
+                    imu_values.gyro_y,
+                    imu_values.gyro_z,
+                    imu_values.roll,
+                    imu_values.pitch,
+                    imu_values.yaw
+                )?;
+            }
         }
 
         // Read and log actuator states
-        if let Ok(actuator_states) = actuators
-            .get_actuators_state(kbot_actuator_ids.clone())
-            .await
-        {
-            for state in actuator_states {
-                writeln!(
-                    actuator_file,
-                    "{:.6},{},{},{},{},{},{}",
-                    now,
-                    state.actuator_id,
-                    state.position.unwrap_or(f64::NAN),
-                    state.velocity.unwrap_or(f64::NAN),
-                    state.torque.unwrap_or(f64::NAN),
-                    state.temperature.unwrap_or(f64::NAN),
-                    state.online
-                )?;
+        if let Some(actuators_ref) = &actuators {
+            if let Ok(actuator_states) = actuators_ref
+                .get_actuators_state(kbot_actuator_ids.clone())
+                .await
+            {
+                for state in actuator_states {
+                    writeln!(
+                        actuator_file,
+                        "{:.6},{},{},{},{},{},{}",
+                        now,
+                        state.actuator_id,
+                        state.position.unwrap_or(f64::NAN),
+                        state.velocity.unwrap_or(f64::NAN),
+                        state.torque.unwrap_or(f64::NAN),
+                        state.temperature.unwrap_or(f64::NAN),
+                        state.online
+                    )?;
+                }
             }
         }
 
