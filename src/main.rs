@@ -1,9 +1,12 @@
-use ort::Error as OrtError;
 use ort::session::builder::GraphOptimizationLevel;
 use ort::session::Session;
+use ort::Error as OrtError;
 
-mod actuators;
-use actuators::Actuator;
+// mod actuators;
+// use actuators::Actuator;
+
+mod imu;
+use imu::IMU;
 
 fn load_onnx_model(model_path: &str) -> Result<Session, OrtError> {
     let model = Session::builder()?
@@ -27,99 +30,107 @@ fn load_onnx_model(model_path: &str) -> Result<Session, OrtError> {
 // |     5     | actions                         |   (20,)   |
 // +-----------+---------------------------------+-----------+
 
-fn set_targets(obs: &mut ndarray::Array2<f32>) -> Result<(), Box<dyn std::error::Error>> {
-    obs[[0, 0]] = 1.0;  // x_vel
-    obs[[0, 1]] = 0.0;  // y_vel
-    obs[[0, 2]] = 0.0;  // rot
-    Ok(())
+async fn get_targets() -> Result<[f32; 3], Box<dyn std::error::Error>> {
+    Ok([1.0, 0.0, 0.0]) // x_vel, y_vel, rot
 }
 
-// Joint Names and Indices:
-// ------------------------------
-//   0: left_hip_pitch_04
-//   1: left_shoulder_pitch_03
-//   2: right_hip_pitch_04
-//   3: right_shoulder_pitch_03
-//   4: left_hip_roll_03
-//   5: left_shoulder_roll_03
-//   6: right_hip_roll_03
-//   7: right_shoulder_roll_03
-//   8: left_hip_yaw_03
-//   9: left_shoulder_yaw_02
-//  10: right_hip_yaw_03
-//  11: right_shoulder_yaw_02
-//  12: left_knee_04
-//  13: left_elbow_02
-//  14: right_knee_04
-//  15: right_elbow_02
-//  16: left_ankle_02
-//  17: left_wrist_02
-//  18: right_ankle_02
-//  19: right_wrist_02
-// ------------------------------
-
-fn set_dof_pos_and_vel(obs: &mut ndarray::Array2<f32>) -> Result<(), Box<dyn std::error::Error>> {
-    // Set the 20 DoF positions and velocities.
-    Ok(())
+async fn get_dof_pos_and_vel() -> Result<[f32; 40], Box<dyn std::error::Error>> {
+    // Return array of 20 positions and 20 velocities
+    Ok([0.0; 40])
 }
 
-fn set_imu(obs: &mut ndarray::Array2<f32>) -> Result<(), Box<dyn std::error::Error>> {
-    // Values from 3 to 6 are the IMU angular velocities.
-    obs[[0, 3]] = 0.0;
-    obs[[0, 4]] = 0.0;
-    obs[[0, 5]] = 0.0;
-    // Values from 6 to 9 are the IMU linear accelerations.
-    obs[[0, 6]] = 0.0;
-    obs[[0, 7]] = 0.0;
-    obs[[0, 8]] = 0.0;
-    // Values from 9 to 12 are the projected gravity.
-    obs[[0, 9]] = 0.0;
-    obs[[0, 10]] = 0.0;
-    obs[[0, 11]] = 0.0;
-    Ok(())
+fn euler_angles_to_gravity(roll: f64, pitch: f64) -> Result<[f64; 3], Box<dyn std::error::Error>> {
+    // Convert roll and pitch to radians
+    let (roll, pitch) = (roll.to_radians(), pitch.to_radians());
+
+    // Calculate trigonometric values
+    let (sr, cr) = roll.sin_cos();
+    let (sp, cp) = pitch.sin_cos();
+
+    // Gravity components
+    let gx = -sp; // X-axis component
+    let gy = sr * cp; // Y-axis component
+    let gz = -cr * cp; // Z-axis component
+
+    // Gravity in IMU frame
+    Ok([gx, gy, gz])
+}
+
+async fn get_imu_values(imu: &IMU) -> Result<[f32; 9], Box<dyn std::error::Error>> {
+    let imu_values = imu.get_values().await?;
+    let gravity = euler_angles_to_gravity(imu_values.roll, imu_values.pitch)?;
+
+    // Return array of [ang_vel(3), linear_accel(3), projected_gravity(3)]
+    Ok([
+        imu_values.gyro_x as f32,
+        imu_values.gyro_y as f32,
+        imu_values.gyro_z as f32,
+        imu_values.accel_x as f32,
+        imu_values.accel_y as f32,
+        imu_values.accel_z as f32,
+        gravity[0] as f32,
+        gravity[1] as f32,
+        gravity[2] as f32,
+    ])
 }
 
 fn take_action(actions: ndarray::Array2<f32>) -> Result<(), Box<dyn std::error::Error>> {
-    println!("{:?}", actions);
+    // println!("{:?}", actions);
     Ok(())
 }
 
-fn run_model(model_path: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let model = load_onnx_model(model_path).unwrap();
+async fn run_model(model_path: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let model = load_onnx_model(model_path)?;
     println!("Model loaded");
 
     let mut obs = ndarray::Array2::<f32>::zeros((1, 69));
 
-    for i in 0..50 {
-        set_targets(&mut obs)?;
-        set_dof_pos_and_vel(&mut obs)?;
-        set_imu(&mut obs)?;
+    // Gets the IMU reader.
+    let imu = IMU::new("/dev/ttyUSB0", 9600).await?;
+
+    // for _ in 0..50 {
+    loop {
+        let (targets, dof_values, imu_values) =
+            tokio::join!(get_targets(), get_dof_pos_and_vel(), get_imu_values(&imu));
+        let targets = targets?;
+        let dof_values = dof_values?;
+        let imu_values = imu_values?;
+
+        // Populate observation with returned values
+        obs.slice_mut(ndarray::s![0, 0..3])
+            .assign(&ndarray::Array1::from_vec(targets.to_vec()));
+        obs.slice_mut(ndarray::s![0, 3..43])
+            .assign(&ndarray::Array1::from_vec(dof_values.to_vec()));
+        obs.slice_mut(ndarray::s![0, 43..52])
+            .assign(&ndarray::Array1::from_vec(imu_values.to_vec()));
 
         let outputs = model.run(ort::inputs!["obs" => obs.clone()]?)?;
-        let actions = outputs[0].try_extract_tensor::<f32>().unwrap();
+        let actions = outputs[0].try_extract_tensor::<f32>()?;
 
         // Copy actions into the next step of the observation.
-        let actions_array = actions
-            .into_shape_with_order(ndarray::Ix2(1, 20))
-            .unwrap();
+        let actions_array = actions.into_shape_with_order(ndarray::Ix2(1, 20))?;
         obs.slice_mut(ndarray::s![0, 49..69])
             .assign(&actions_array.slice(ndarray::s![0, ..]));
 
         // Finally, scale actions by 1 / 0.5 to get the actions to take.
         let output_actions = actions_array.map(|x| x * 2.0);
         take_action(output_actions)?;
+
+        // Add a small delay to control the loop rate
+        tokio::time::sleep(tokio::time::Duration::from_millis(20)).await;
+        // println!("Current time: {}", chrono::Utc::now().timestamp_millis());
     }
 
     Ok(())
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = std::env::args().collect();
     if args.len() != 2 {
-        // Add this line
         return Err("Expected one argument".into());
     }
     let model_path = &args[1];
-    run_model(model_path)?;
+    run_model(model_path).await?;
     Ok(())
 }

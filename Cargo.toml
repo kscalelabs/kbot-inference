@@ -4,8 +4,24 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+
+# Runtime.
 futures-util = "0.3.30"
-# imu = "0.2.2"
 ndarray = "0.16.1"
 ort = { version = "2.0.0-rc.6", features = [ "load-dynamic" ] }
+
+# Logging.
+async-trait = "0.1"
+tonic = "0.12"
+eyre = "0.6"
+kbot-pwrbrd = "0.1.1"
+tracing = "0.1.39"
+
+# Sensors and actuators.
+[target.'cfg(target_os = "linux")'.dependencies]
+hiwonder = "=0.2.1"
 robstride = "0.3.0"
+chrono = "0.4"
+
+# Additional dependencies
+tokio = { version = "1.0", features = ["full"] }
