@@ -1,11 +1,13 @@
+use std::time::Duration;
+
 use ort::session::builder::GraphOptimizationLevel;
 use ort::session::Session;
 use ort::Error as OrtError;
 
-// mod actuators;
-// use actuators::Actuator;
-
+mod actuators;
 mod imu;
+
+use actuators::Actuator;
 use imu::IMU;
 
 fn load_onnx_model(model_path: &str) -> Result<Session, OrtError> {
@@ -34,7 +36,13 @@ async fn get_targets() -> Result<[f32; 3], Box<dyn std::error::Error>> {
     Ok([1.0, 0.0, 0.0]) // x_vel, y_vel, rot
 }
 
-async fn get_dof_pos_and_vel() -> Result<[f32; 40], Box<dyn std::error::Error>> {
+async fn get_dof_pos_and_vel(
+    actuators: &Actuator,
+) -> Result<[f32; 40], Box<dyn std::error::Error>> {
+    let state = actuators.get_actuators_state(vec![0]).await?;
+
+    println!("{:?}", state.iter().map(|s| s.position).collect::<Vec<_>>());
+
     // Return array of 20 positions and 20 velocities
     Ok([0.0; 40])
 }
@@ -87,11 +95,21 @@ async fn run_model(model_path: &str) -> Result<(), Box<dyn std::error::Error>> {
 
     // Gets the IMU reader.
     let imu = IMU::new("/dev/ttyUSB0", 9600).await?;
+    let actuators = Actuator::new(
+        vec!["can0", "can1", "can2", "can3"],
+        Duration::from_millis(100),
+        Duration::from_millis(100),
+        &Actuator::create_kbot_actuators(),
+    )
+    .await?;
 
     // for _ in 0..50 {
     loop {
-        let (targets, dof_values, imu_values) =
-            tokio::join!(get_targets(), get_dof_pos_and_vel(), get_imu_values(&imu));
+        let (targets, dof_values, imu_values) = tokio::join!(
+            get_targets(),
+            get_dof_pos_and_vel(&actuators),
+            get_imu_values(&imu)
+        );
         let targets = targets?;
         let dof_values = dof_values?;
         let imu_values = imu_values?;
@@ -118,10 +136,7 @@ async fn run_model(model_path: &str) -> Result<(), Box<dyn std::error::Error>> {
 
         // Add a small delay to control the loop rate
         tokio::time::sleep(tokio::time::Duration::from_millis(20)).await;
-        // println!("Current time: {}", chrono::Utc::now().timestamp_millis());
     }
-
-    Ok(())
 }
 
 #[tokio::main]
