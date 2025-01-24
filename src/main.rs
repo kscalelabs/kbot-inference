@@ -3,6 +3,7 @@ use std::time::Duration;
 use ort::session::builder::GraphOptimizationLevel;
 use ort::session::Session;
 use ort::Error as OrtError;
+use tracing_subscriber::FmtSubscriber;
 
 mod actuators;
 mod imu;
@@ -38,16 +39,33 @@ async fn get_targets() -> Result<[f32; 3], Box<dyn std::error::Error>> {
 
 async fn get_dof_pos_and_vel(
     actuators: &Actuator,
+    actuator_ids: &Vec<u8>,
 ) -> Result<[f32; 40], Box<dyn std::error::Error>> {
-    let state = actuators.get_actuators_state(vec![0]).await?;
-
-    println!("{:?}", state.iter().map(|s| s.position).collect::<Vec<_>>());
+    let state = actuators.get_actuators_state(actuator_ids.to_vec()).await?;
 
     // Return array of 20 positions and 20 velocities
-    Ok([0.0; 40])
+    let positions = state.iter().map(|s| s.position).collect::<Vec<_>>();
+    let velocities = state.iter().map(|s| s.velocity).collect::<Vec<_>>();
+
+    // Create array and copy positions and velocities into it
+    let mut result = [0.0; 40];
+    result[..20].copy_from_slice(
+        &positions
+            .iter()
+            .map(|x| x.unwrap_or(0.0))
+            .collect::<Vec<f64>>(),
+    );
+    result[20..].copy_from_slice(
+        &velocities
+            .iter()
+            .map(|x| x.unwrap_or(0.0))
+            .collect::<Vec<f64>>(),
+    );
+
+    Ok(result.map(|x| x as f32))
 }
 
-fn euler_angles_to_gravity(roll: f64, pitch: f64) -> Result<[f64; 3], Box<dyn std::error::Error>> {
+fn euler_angles_to_gravity(roll: f32, pitch: f32) -> Result<[f32; 3], Box<dyn std::error::Error>> {
     // Convert roll and pitch to radians
     let (roll, pitch) = (roll.to_radians(), pitch.to_radians());
 
@@ -66,7 +84,7 @@ fn euler_angles_to_gravity(roll: f64, pitch: f64) -> Result<[f64; 3], Box<dyn st
 
 async fn get_imu_values(imu: &IMU) -> Result<[f32; 9], Box<dyn std::error::Error>> {
     let imu_values = imu.get_values().await?;
-    let gravity = euler_angles_to_gravity(imu_values.roll, imu_values.pitch)?;
+    let gravity = euler_angles_to_gravity(imu_values.roll as f32, imu_values.pitch as f32)?;
 
     // Return array of [ang_vel(3), linear_accel(3), projected_gravity(3)]
     Ok([
@@ -76,9 +94,9 @@ async fn get_imu_values(imu: &IMU) -> Result<[f32; 9], Box<dyn std::error::Error
         imu_values.accel_x as f32,
         imu_values.accel_y as f32,
         imu_values.accel_z as f32,
-        gravity[0] as f32,
-        gravity[1] as f32,
-        gravity[2] as f32,
+        gravity[0],
+        gravity[1],
+        gravity[2],
     ])
 }
 
@@ -89,30 +107,46 @@ fn take_action(actions: ndarray::Array2<f32>) -> Result<(), Box<dyn std::error::
 
 async fn run_model(model_path: &str) -> Result<(), Box<dyn std::error::Error>> {
     let model = load_onnx_model(model_path)?;
-    println!("Model loaded");
+    tracing::info!("Model loaded");
 
     let mut obs = ndarray::Array2::<f32>::zeros((1, 69));
 
     // Gets the IMU reader.
-    let imu = IMU::new(&["/dev/ttyUSB0", "/dev/ttyCH341USB0"], 9600).await?;
-    let actuators = Actuator::new(
-        vec!["can0", "can1", "can2", "can3"],
-        Duration::from_millis(100),
-        Duration::from_millis(100),
-        &Actuator::create_kbot_actuators(),
-    )
-    .await?;
+    let kbot_actuators = Actuator::create_kbot_actuators();
+    let kbot_actuator_ids = kbot_actuators.iter().map(|(id, _)| *id).collect::<Vec<_>>();
+    let (imu, actuators) = tokio::try_join!(
+        IMU::new(&["/dev/ttyUSB0", "/dev/ttyCH341USB0"], 9600),
+        Actuator::new(
+            vec!["can0", "can1", "can2", "can3", "can4"],
+            Duration::from_millis(100), // Actuator timeout
+            Duration::from_millis(20),  // Polling interval, for running at 50 Hz
+            &kbot_actuators,
+        )
+    )?;
 
-    // for _ in 0..50 {
+    let target_loop_rate = 50.0;
+    let target_loop_interval = Duration::from_millis((1000.0 / target_loop_rate) as u64);
+    let mut next_loop_time = tokio::time::Instant::now();
+
+    let mut loop_count = 0;
+    let mut loop_count_start = tokio::time::Instant::now();
+
+    // Profiling stats.
+    let mut total_sensor_time = Duration::ZERO;
+    let mut total_inference_time = Duration::ZERO;
+    let mut total_action_time = Duration::ZERO;
+
     loop {
+        let sensor_start = tokio::time::Instant::now();
         let (targets, dof_values, imu_values) = tokio::join!(
             get_targets(),
-            get_dof_pos_and_vel(&actuators),
+            get_dof_pos_and_vel(&actuators, &kbot_actuator_ids),
             get_imu_values(&imu)
         );
         let targets = targets?;
         let dof_values = dof_values?;
         let imu_values = imu_values?;
+        total_sensor_time += sensor_start.elapsed();
 
         // Populate observation with returned values
         obs.slice_mut(ndarray::s![0, 0..3])
@@ -122,9 +156,12 @@ async fn run_model(model_path: &str) -> Result<(), Box<dyn std::error::Error>> {
         obs.slice_mut(ndarray::s![0, 43..52])
             .assign(&ndarray::Array1::from_vec(imu_values.to_vec()));
 
+        let inference_start = tokio::time::Instant::now();
         let outputs = model.run(ort::inputs!["obs" => obs.clone()]?)?;
         let actions = outputs[0].try_extract_tensor::<f32>()?;
+        total_inference_time += inference_start.elapsed();
 
+        let action_start = tokio::time::Instant::now();
         // Copy actions into the next step of the observation.
         let actions_array = actions.into_shape_with_order(ndarray::Ix2(1, 20))?;
         obs.slice_mut(ndarray::s![0, 49..69])
@@ -133,14 +170,54 @@ async fn run_model(model_path: &str) -> Result<(), Box<dyn std::error::Error>> {
         // Finally, scale actions by 1 / 0.5 to get the actions to take.
         let output_actions = actions_array.map(|x| x * 2.0);
         take_action(output_actions)?;
+        total_action_time += action_start.elapsed();
 
-        // Add a small delay to control the loop rate
-        tokio::time::sleep(tokio::time::Duration::from_millis(20)).await;
+        // Keeps track of the loop frequency and prints profiling information
+        loop_count += 1;
+        if loop_count >= 100 {
+            let total_elapsed = loop_count_start.elapsed();
+            let loop_rate = loop_count as f32 / total_elapsed.as_secs_f32();
+
+            // Calculate average times in milliseconds
+            let avg_sensor_time = total_sensor_time.as_secs_f32() * 1000.0 / loop_count as f32;
+            let avg_inference_time =
+                total_inference_time.as_secs_f32() * 1000.0 / loop_count as f32;
+            let avg_action_time = total_action_time.as_secs_f32() * 1000.0 / loop_count as f32;
+
+            tracing::info!(
+                "Performance: Loop rate: {:.1} Hz, Sensor time: {:.2}ms, Inference time: {:.2}ms, Action time: {:.2}ms",
+                loop_rate,
+                avg_sensor_time,
+                avg_inference_time,
+                avg_action_time
+            );
+
+            // Reset counters
+            loop_count = 0;
+            loop_count_start = tokio::time::Instant::now();
+            total_sensor_time = Duration::ZERO;
+            total_inference_time = Duration::ZERO;
+            total_action_time = Duration::ZERO;
+        }
+
+        // Replace the old sleep logic with this:
+        next_loop_time += target_loop_interval;
+        if let Some(sleep_duration) =
+            next_loop_time.checked_duration_since(tokio::time::Instant::now())
+        {
+            tokio::time::sleep(sleep_duration).await;
+        }
     }
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Configure logging.
+    let subscriber = FmtSubscriber::builder()
+        .with_max_level(tracing::Level::INFO) // Set the max log level
+        .finish();
+    tracing::subscriber::set_global_default(subscriber).expect("Setting default subscriber failed");
+
     let args: Vec<String> = std::env::args().collect();
     if args.len() != 2 {
         return Err("Expected one argument".into());

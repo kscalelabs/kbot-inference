@@ -88,8 +88,7 @@ impl Actuator {
         // Scan for motors on each port
         for port in &ports {
             let discovered_ids = supervisor.scan_bus(0xFD, port, actuators_config).await?;
-
-            println!("Discovered IDs: {:?}", discovered_ids);
+            tracing::info!("Discovered IDs on {}: {:?}", port, discovered_ids);
 
             // Find unknown IDs by comparing against configured IDs
             let configured_ids: Vec<_> = actuators_config.iter().map(|(id, _)| id).collect();
@@ -198,14 +197,14 @@ impl Actuator {
         })
     }
 
-    pub async fn get_actuators_state(&self, actuator_ids: Vec<u32>) -> Result<Vec<ActuatorState>> {
+    pub async fn get_actuators_state(&self, actuator_ids: Vec<u8>) -> Result<Vec<ActuatorState>> {
         let mut responses = vec![];
         let supervisor = self.supervisor.lock().await;
 
         for id in actuator_ids {
             if let Ok(Some((feedback, ts))) = supervisor.get_feedback(id as u8).await {
                 responses.push(ActuatorState {
-                    actuator_id: id,
+                    actuator_id: id as u32,
                     online: ts.elapsed().unwrap_or(Duration::from_secs(1)) < Duration::from_secs(1),
                     position: Some(feedback.angle.to_degrees() as f64),
                     velocity: Some(feedback.velocity.to_degrees() as f64),
@@ -219,7 +218,7 @@ impl Actuator {
 
     pub fn create_kbot_actuators() -> Vec<(u8, ActuatorConfiguration)> {
         vec![
-            // Left Arm (11-15)
+            // Left Arm (11-16)
             (
                 11,
                 ActuatorConfiguration {
@@ -260,7 +259,15 @@ impl Actuator {
                     max_velocity: Some(10.0f32.to_radians()),
                 },
             ),
-            // Right Arm (21-25)
+            (
+                16,
+                ActuatorConfiguration {
+                    actuator_type: ActuatorType::RobStride00,
+                    max_angle_change: Some(30.0f32.to_radians()),
+                    max_velocity: Some(10.0f32.to_radians()),
+                },
+            ),
+            // Right Arm (21-26)
             (
                 21,
                 ActuatorConfiguration {
@@ -297,6 +304,14 @@ impl Actuator {
                 25,
                 ActuatorConfiguration {
                     actuator_type: ActuatorType::RobStride02,
+                    max_angle_change: Some(30.0f32.to_radians()),
+                    max_velocity: Some(10.0f32.to_radians()),
+                },
+            ),
+            (
+                26,
+                ActuatorConfiguration {
+                    actuator_type: ActuatorType::RobStride00,
                     max_angle_change: Some(30.0f32.to_radians()),
                     max_velocity: Some(10.0f32.to_radians()),
                 },

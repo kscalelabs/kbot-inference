@@ -12,5 +12,5 @@ endif
 
 # Runs the inference script with the specified model
 run:
-	$(ONNX_ENV) cargo run -- position_control.onnx
+	$(ONNX_ENV) RUST_LOG=debug cargo run -- position_control.onnx
 .PHONY: run
