@@ -132,9 +132,9 @@ impl NeuralNetworkRunner {
         }
     }
 
-    pub async fn take_action(
+    pub async fn update_commands(
+        &mut self,
         actions: ndarray::Array2<f32>,
-        actuators: &Option<Actuator>,
     ) -> Result<Vec<ActuatorCommand>, Box<dyn std::error::Error>> {
         // Convert from radians to degrees.
         let actions = actions * 180.0 / std::f32::consts::PI;
@@ -166,14 +166,54 @@ impl NeuralNetworkRunner {
             })
             .collect();
 
-        // Send the commands to the actuators.
+        Ok(commands)
+    }
+
+    pub async fn take_action(
+        &mut self,
+        commands: Vec<ActuatorCommand>,
+        actuators: &Option<Actuator>,
+    ) -> Result<Duration, Box<dyn std::error::Error>> {
+        let action_start = tokio::time::Instant::now();
         if let Some(actuators) = actuators {
             actuators.command_actuators(commands.clone()).await?;
         } else {
-            tracing::info!("Actions (dry run): {:?}", final_actions);
+            tracing::info!(
+                "Commands (dry run): {:?}",
+                commands
+                    .iter()
+                    .map(|c| (c.actuator_id, c.position.unwrap_or(0.0)))
+                    .collect::<Vec<_>>()
+            );
         }
+        let action_time = action_start.elapsed();
+        Ok(action_time)
+    }
 
-        Ok(commands)
+    pub async fn take_action_slowed(
+        &mut self,
+        start_commands: Vec<ActuatorCommand>,
+        end_commands: Vec<ActuatorCommand>,
+        total_delay: Duration,
+        num_steps: usize,
+        actuators: &Option<Actuator>,
+    ) -> Result<Duration, Box<dyn std::error::Error>> {
+        let action_start = tokio::time::Instant::now();
+        if let Some(actuators) = actuators {
+            actuators
+                .command_actuators_slowed(start_commands, end_commands, total_delay, num_steps)
+                .await?;
+        } else {
+            tracing::info!(
+                "Commands (dry run): {:?}",
+                end_commands
+                    .iter()
+                    .map(|c| (c.actuator_id, c.position.unwrap_or(0.0)))
+                    .collect::<Vec<_>>()
+            );
+        }
+        let action_time = action_start.elapsed();
+        Ok(action_time)
     }
 
     pub async fn update_observation(
@@ -233,16 +273,5 @@ impl NeuralNetworkRunner {
         let output_actions = actions_array.map(|x| x * scale);
 
         Ok((output_actions, inference_time))
-    }
-
-    pub async fn run_iteration(
-        &mut self,
-        actions: ndarray::Array2<f32>,
-        actuators: &Option<Actuator>,
-    ) -> Result<(Vec<ActuatorCommand>, Duration), Box<dyn std::error::Error>> {
-        let action_start = tokio::time::Instant::now();
-        let commands = Self::take_action(actions, actuators).await?;
-        let action_time = action_start.elapsed();
-        Ok((commands, action_time))
     }
 }

@@ -5,25 +5,20 @@ edition = "2021"
 
 [dependencies]
 
-# Runtime.
+async-trait = "0.1"
+clap = { version = "4.4", features = ["derive"] }
+eyre = "0.6"
 futures = "0.3.30"
 futures-util = "0.3.30"
+kbot-pwrbrd = "0.1.1"
 ndarray = "0.16.1"
 ort = { version = "2.0.0-rc.6", features = [ "load-dynamic" ] }
-
-# Logging.
-async-trait = "0.1"
+tokio = { version = "1.0", features = ["full"] }
 tonic = "0.12"
-eyre = "0.6"
-kbot-pwrbrd = "0.1.1"
 tracing = "0.1"
 tracing-subscriber = "0.3"
 
-# Sensors and actuators.
 [target.'cfg(target_os = "linux")'.dependencies]
+chrono = "0.4"
 hiwonder = "=0.2.1"
 robstride = "0.3.0"
-chrono = "0.4"
-
-# Additional dependencies
-tokio = { version = "1.0", features = ["full"] }

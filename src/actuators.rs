@@ -8,7 +8,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Mutex;
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct ActuatorCommand {
     pub actuator_id: u32,
     pub position: Option<f64>,
