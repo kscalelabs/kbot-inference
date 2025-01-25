@@ -19,7 +19,7 @@ impl NeuralNetworkRunner {
             .with_intra_threads(4)?
             .commit_from_file(model_path)?;
 
-        let obs = ndarray::Array2::<f32>::zeros((1, 72));
+        let obs = ndarray::Array2::<f32>::zeros((1, 66));
 
         // Populate the last command vector.
         let mut start_commands = vec![];
@@ -125,7 +125,7 @@ impl NeuralNetworkRunner {
         Ok([gx, gy, gz])
     }
 
-    pub async fn get_imu_values(imu: &Option<IMU>) -> Result<[f32; 9], Box<dyn std::error::Error>> {
+    pub async fn get_imu_values(imu: &Option<IMU>) -> Result<[f32; 3], Box<dyn std::error::Error>> {
         if let Some(imu) = imu {
             let imu_values = imu.get_values().await?;
             let gravity =
@@ -133,21 +133,12 @@ impl NeuralNetworkRunner {
 
             // Return array of [ang_vel(3), linear_accel(3), projected_gravity(3)]
             Ok([
-                imu_values.gyro_x as f32,
-                imu_values.gyro_y as f32,
-                imu_values.gyro_z as f32,
-                // Hiwonder IMU values are normalized by gravity. Need to de-normalize them.
-                (imu_values.accel_x as f32) * 9.81,
-                (imu_values.accel_y as f32) * 9.81,
-                (imu_values.accel_z as f32) * 9.81,
-                // Gravity vector being normalized is correct.
-                gravity[0],
-                gravity[1],
-                gravity[2],
+                // Just using the gravity vector for now.
+                gravity[0], gravity[1], gravity[2],
             ])
         } else {
             // Return zeros in dry run mode
-            Ok([0.0; 9])
+            Ok([0.0; 3])
         }
     }
 
@@ -268,12 +259,12 @@ impl NeuralNetworkRunner {
 
         let imu_values = imu_values?;
         self.obs
-            .slice_mut(ndarray::s![0, 3..12])
+            .slice_mut(ndarray::s![0, 3..6])
             .assign(&ndarray::Array1::from_vec(imu_values.to_vec()));
 
         let dof_values = dof_values?;
         self.obs
-            .slice_mut(ndarray::s![0, 12..52])
+            .slice_mut(ndarray::s![0, 6..46])
             .assign(&ndarray::Array1::from_vec(dof_values.to_vec()));
 
         Ok((self.obs.clone(), sensor_time))
@@ -292,7 +283,7 @@ impl NeuralNetworkRunner {
 
         // Update the observation buffer with the new actions
         self.obs
-            .slice_mut(ndarray::s![0, 52..72])
+            .slice_mut(ndarray::s![0, 46..66])
             .assign(&actions_array.slice(ndarray::s![0, ..]));
 
         Ok((actions_array.to_owned(), inference_time))
