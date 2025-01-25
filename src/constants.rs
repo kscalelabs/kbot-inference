@@ -96,7 +96,7 @@ pub const NN_JOINT_LIMITS: [(usize, f32, f32); 20] = [
     (14, 0.0, 120.0),  // right_knee_04
     (15, 0.0, 145.0),  // right_elbow_02
     (16, -40.0, 40.0), // left_ankle_02
-    (17, 0.0, 90.0),   // left_wrist_02
+    (17, 0.0, 360.0),  // left_wrist_02
     (18, -40.0, 40.0), // right_ankle_02
-    (19, 0.0, 90.0),   // right_wrist_02
+    (19, 0.0, 360.0),  // right_wrist_02
 ];

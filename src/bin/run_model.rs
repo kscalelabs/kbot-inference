@@ -60,16 +60,24 @@ async fn run_model(args: Args) -> Result<(), Box<dyn std::error::Error>> {
 
     // Write headers
     if let Some(file) = &mut obs_file {
-        write!(file, "timestamp")?;
         for i in 0..nn_runner.get_observation_size() {
-            write!(file, ",obs_{}", i)?;
+            write!(
+                file,
+                "{}{}",
+                if i == 0 { "" } else { "," },
+                format!("obs_{}", i)
+            )?;
         }
         writeln!(file)?;
     }
     if let Some(file) = &mut actions_file {
-        write!(file, "timestamp")?;
         for i in 0..nn_runner.get_action_size() {
-            write!(file, ",action_{}", i)?;
+            write!(
+                file,
+                "{}{}",
+                if i == 0 { "" } else { "," },
+                format!("action_{}", i)
+            )?;
         }
         writeln!(file)?;
     }
@@ -129,10 +137,8 @@ async fn run_model(args: Args) -> Result<(), Box<dyn std::error::Error>> {
 
         // Log observations if enabled
         if let Some(file) = &mut obs_file {
-            let timestamp = time::OffsetDateTime::now_local()?.unix_timestamp();
-            write!(file, "{}", timestamp)?;
-            for &value in obs.iter() {
-                write!(file, ",{}", value)?;
+            for (i, &value) in obs.iter().enumerate() {
+                write!(file, "{}{:.20e}", if i == 0 { "" } else { "," }, value)?;
             }
             writeln!(file)?;
         }
@@ -142,10 +148,8 @@ async fn run_model(args: Args) -> Result<(), Box<dyn std::error::Error>> {
 
         // Log actions if enabled
         if let Some(file) = &mut actions_file {
-            let timestamp = time::OffsetDateTime::now_local()?.unix_timestamp();
-            write!(file, "{}", timestamp)?;
-            for &value in actions.iter() {
-                write!(file, ",{}", value)?;
+            for (i, &value) in actions.iter().enumerate() {
+                write!(file, "{}{:.20e}", if i == 0 { "" } else { "," }, value)?;
             }
             writeln!(file)?;
         }
