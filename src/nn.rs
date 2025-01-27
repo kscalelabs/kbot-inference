@@ -244,10 +244,10 @@ impl NeuralNetworkRunner {
         slowdown_factor: f32,
     ) -> Result<(ndarray::Array2<f32>, Duration), Box<dyn std::error::Error>> {
         let sensor_start = tokio::time::Instant::now();
-        let (targets, dof_values, imu_values) = tokio::join!(
+        let (targets, imu_values, dof_values) = tokio::join!(
             Self::get_targets(),
+            Self::get_imu_values(imu),
             Self::get_dof_pos_and_vel(actuators, actuator_ids, slowdown_factor),
-            Self::get_imu_values(imu)
         );
         let sensor_time = sensor_start.elapsed();
 
