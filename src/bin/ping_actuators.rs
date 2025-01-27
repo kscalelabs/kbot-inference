@@ -55,37 +55,49 @@ async fn scan_for_actuators(args: Args) -> Result<(), Box<dyn std::error::Error>
 
     // Get current state of all possible actuators
     let states = actuator.get_actuators_state((1..=0xFF).collect()).await?;
+    let num_actuators = states.len();
 
     // Print results
-    println!("\nActuator Scan Results:");
-    println!("=====================");
+    println!("\n=== Actuator Scan Results ===");
 
     if states.is_empty() {
-        println!("No actuators found on ports: {:?}", args.ports);
+        println!("❌ No actuators found on ports: {:?}", args.ports);
         return Ok(());
     }
 
     for state in states {
         let id = state.actuator_id as u8;
         let is_kbot = kbot_ids.contains(&id);
+        let status_icon = if state.online { "✓" } else { "✗" };
+
+        println!("\n📍 Actuator ID: {}", id);
         println!(
-            "ID: {} ({})",
-            id,
+            "   Type: {}",
             if is_kbot {
                 "Known K-Bot actuator"
             } else {
                 "Unknown actuator"
             }
         );
-        println!("  Online: {}", state.online);
+        println!(
+            "   Status: {} {}",
+            status_icon,
+            if state.online { "Online" } else { "Offline" }
+        );
+
         if let Some(temp) = state.temperature {
-            println!("  Temperature: {:.1}°C", temp);
+            println!("   Temperature: {:.1}°C", temp);
         }
         if let Some(pos) = state.position {
-            println!("  Position: {:.1}°", pos);
+            println!("   Position: {:.1}°", pos);
         }
-        println!();
     }
+
+    println!(
+        "\n✨ Found {} actuator{}",
+        num_actuators,
+        if num_actuators == 1 { "" } else { "s" }
+    );
 
     Ok(())
 }
