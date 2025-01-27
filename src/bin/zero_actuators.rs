@@ -31,10 +31,12 @@ async fn zero_actuators() -> Result<(), Box<dyn std::error::Error>> {
             tracing::info!("Disabled actuator {}", actuator_id);
         }
 
-        // Wait a moment for any motion to stop``
-        tokio::time::sleep(Duration::from_secs(1)).await;
+        // Wait a moment for any motion to stop
+        tracing::info!("Stopping actuators");
+        tokio::time::sleep(Duration::from_secs(10)).await;
 
         // Then zero each actuator
+        tracing::info!("Zeroing actuators");
         for actuator_id in &kbot_actuator_ids {
             let config = ConfigureRequest {
                 actuator_id: *actuator_id as u32,

@@ -35,16 +35,24 @@ pub async fn initialize_hardware(
         for id in &kbot_actuator_ids {
             let row = constants::ACTUATOR_KP_KD
                 .iter()
-                .find(|(id, _, _)| *id == *id);
+                .find(|(i, _, _, _)| *i == *id as usize);
             if let Some(row) = row {
                 let kp = row.1;
                 let kd = row.2;
+                let max_torque = row.3;
+                tracing::info!(
+                    "Configuring actuator {} with kp={}, kd={}, max_torque={}",
+                    id,
+                    kp,
+                    kd,
+                    max_torque
+                );
                 if let Err(e) = actuators
                     .configure_actuator(actuators::ConfigureRequest {
                         actuator_id: *id as u32,
                         kp: Some(kp as f64),
                         kd: Some(kd as f64),
-                        max_torque: None,
+                        max_torque: Some(max_torque as f64),
                         torque_enabled: Some(torque_enabled),
                         zero_position: None,
                         new_actuator_id: None,

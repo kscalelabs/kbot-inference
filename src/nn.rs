@@ -23,7 +23,7 @@ impl NeuralNetworkRunner {
 
         // Populate the last command vector.
         let mut start_commands = vec![];
-        for (_, actuator_id, _) in ACTUATOR_ID_MAP.iter() {
+        for (actuator_id, _, _) in ACTUATOR_ID_MAP.iter() {
             start_commands.push(ActuatorCommand {
                 actuator_id: *actuator_id as u32,
                 position: Some(0.0),
@@ -44,7 +44,7 @@ impl NeuralNetworkRunner {
     }
 
     pub async fn get_targets() -> Result<[f32; 3], Box<dyn std::error::Error>> {
-        Ok([0.0, 0.0, 0.0]) // x_vel, y_vel, rot
+        Ok([1.0, 0.0, 0.0]) // x_vel, y_vel, rot
     }
 
     pub async fn get_dof_pos_and_vel(
@@ -131,11 +131,15 @@ impl NeuralNetworkRunner {
             let gravity =
                 Self::euler_angles_to_gravity(imu_values.roll as f32, imu_values.pitch as f32)?;
 
-            // Return array of [ang_vel(3), linear_accel(3), projected_gravity(3)]
-            Ok([
-                // Just using the gravity vector for now.
-                gravity[0], gravity[1], gravity[2],
-            ])
+            // These are the sensor values read by the IMU. We need to convert
+            // them to the neural network input space. Since the neural network
+            // uses the gravity vector relative to the base frame, we need to
+            // convert from the IMU frame to the base frame.
+            let gx = gravity[0];
+            let gy = gravity[1];
+            let gz = gravity[2];
+
+            Ok([gx, gy, gz])
         } else {
             // Return zeros in dry run mode
             Ok([0.0; 3])
@@ -167,7 +171,7 @@ impl NeuralNetworkRunner {
         // Pair the neural network action ID with the actuator ID
         let commands: Vec<ActuatorCommand> = ACTUATOR_ID_MAP
             .iter()
-            .map(|(nn_idx, actuator_id, is_inverted)| {
+            .map(|(actuator_id, nn_idx, is_inverted)| {
                 let actuator_action = final_actions[[0, *nn_idx]];
 
                 // Invert the actuator action to go from URDF space to actuator space if needed.

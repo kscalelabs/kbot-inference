@@ -44,11 +44,14 @@ slow-run: ## Run the model at reduced speed (with hardware)
 slow-dry-run: ## Run the model at reduced speed (without hardware)
 	$(CARGO_RUN) --bin run_model -- $(MODEL_PATH) --dry-run --slowdown-factor $(SLOWDOWN_FACTOR)
 
-log-sensors: ## Read and display sensor data
-	$(CARGO_RUN) --bin read_sensors -- --duration 60 --output-dir sensor_logs
+move-to-zero: ## Move all actuators to zero positions
+	$(CARGO_RUN) --bin move_to_zero
 
 read-sensors: ## Read and display sensor data
 	$(CARGO_RUN) --bin read_sensors
+
+read-nn-values: ## Read and display neural network values
+	$(CARGO_RUN) --bin read_nn_values -- --model-path $(MODEL_PATH)
 
 zero-actuators: ## Zero all actuators on the robot
 	$(CARGO_RUN) --bin zero_actuators
