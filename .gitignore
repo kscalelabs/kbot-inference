@@ -10,3 +10,4 @@ Cargo.lock
 # Data
 sensor_logs*/
 nn_logs*/
+plots/
