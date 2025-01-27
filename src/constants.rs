@@ -66,25 +66,34 @@ pub const NN_HOME_POSITION: [(usize, f32); 20] = [
     (9, 0.0),    // left_shoulder_yaw_02
     (10, 0.0),   // right_hip_yaw_03
     (11, 0.0),   // right_shoulder_yaw_02
-    (12, -60.0), // left_knee_04
+    (12, 60.0),  // left_knee_04
     (13, -90.0), // left_elbow_02
-    (14, 60.0),  // right_knee_04
+    (14, -60.0), // right_knee_04
     (15, 90.0),  // right_elbow_02
-    (16, 30.0),  // left_ankle_02
+    (16, -30.0), // left_ankle_02
     (17, 0.0),   // left_wrist_02
-    (18, 30.0),  // right_ankle_02
+    (18, -30.0), // right_ankle_02
     (19, 0.0),   // right_wrist_02
 ];
 
+// The commented-out values are the original URDF joint limits - I am
+// adding software limits here to avoid some hardware failures.
 pub const NN_JOINT_LIMITS: [(usize, f32, f32); 20] = [
-    (0, -90.0, 90.0),    // left_hip_pitch_04
-    (1, 0.0, 180.0),     // left_shoulder_pitch_03
-    (2, -90.0, 90.0),    // right_hip_pitch_04
-    (3, -180.0, 0.0),    // right_shoulder_pitch_03
-    (4, -182.5, 20.0),   // left_hip_roll_03
-    (5, -208.0, 27.5),   // left_shoulder_roll_03
-    (6, -20.0, 182.5),   // right_hip_roll_03
-    (7, -27.5, 208.0),   // right_shoulder_roll_03
+    (0, -90.0, 90.0), // left_hip_pitch_04
+    (1, 0.0, 180.0),  // left_shoulder_pitch_03
+    (2, -90.0, 90.0), // right_hip_pitch_04
+    (3, -180.0, 0.0), // right_shoulder_pitch_03
+    // Software limit to avoid some hardware issues.
+    // (4, -182.5, 20.0),   // left_hip_roll_03
+    (4, -20.0, 20.0), // left_hip_roll_03
+    // Software limit to avoid some hardware issues.
+    // (5, -208.0, 27.5), // left_shoulder_roll_03
+    (5, -90.0, 27.5), // left_shoulder_roll_03
+    // Software limit to avoid some hardware issues.
+    // (6, -20.0, 182.5),   // right_hip_roll_03
+    (6, -20.0, 20.0), // right_hip_roll_03
+    // (7, -27.5, 208.0),   // right_shoulder_roll_03
+    (7, -27.5, 90.0),    // right_shoulder_roll_03
     (8, -90.0, 90.0),    // left_hip_yaw_03
     (9, -90.0, 90.0),    // left_shoulder_yaw_02
     (10, -90.0, 90.0),   // right_hip_yaw_03
