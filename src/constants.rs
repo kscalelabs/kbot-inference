@@ -1,6 +1,6 @@
 // Mapping from the neural network index to the actuator ID. This also includes
 // a flag indicating whether or not the real actuator orientation is flipped
-// relative to the URDF model, and the lower and upper limits of the actuator.
+// relative to the URDF model.
 pub const ACTUATOR_ID_MAP: [(u8, usize, bool); 20] = [
     (11, 1, false),  // left_shoulder_pitch_03
     (12, 5, false),  // left_shoulder_roll_03

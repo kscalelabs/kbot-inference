@@ -55,24 +55,26 @@ impl NeuralNetworkRunner {
         if let Some(actuators) = actuators {
             let state = actuators.get_actuators_state(actuator_ids.to_vec()).await?;
 
-            // Return array of 20 positions and 20 velocities
-            let mut positions = state
-                .iter()
-                .map(|s| s.position)
-                .map(|p| p.unwrap_or(0.0))
-                .collect::<Vec<_>>();
-            let mut velocities = state
-                .iter()
-                .map(|s| s.velocity)
-                .map(|v| v.unwrap_or(0.0))
-                .collect::<Vec<_>>();
+            // Create vectors initialized with zeros
+            let mut positions = vec![0.0; ACTUATOR_ID_MAP.len()];
+            let mut velocities = vec![0.0; ACTUATOR_ID_MAP.len()];
 
-            // Multiply velocities by slowdown factor
-            if slowdown_factor != 1.0 {
-                velocities = velocities
-                    .iter()
-                    .map(|v| v * slowdown_factor as f64)
-                    .collect::<Vec<_>>();
+            // Map actuator values to their neural network indices
+            for (i, state_value) in state.iter().enumerate() {
+                if let Some(actuator_id) = actuator_ids.get(i) {
+                    // Find the corresponding neural network index
+                    if let Some((_, nn_idx, is_inverted)) = ACTUATOR_ID_MAP
+                        .iter()
+                        .find(|(id, _, _)| *id == *actuator_id)
+                    {
+                        let pos = state_value.position.unwrap_or(0.0);
+                        let vel = state_value.velocity.unwrap_or(0.0);
+
+                        // Apply inversion if needed
+                        positions[*nn_idx] = if *is_inverted { -pos } else { pos };
+                        velocities[*nn_idx] = if *is_inverted { -vel } else { vel };
+                    }
+                }
             }
 
             // Subtract off the home position
@@ -80,8 +82,16 @@ impl NeuralNetworkRunner {
                 let pos = positions.get_mut(*nn_idx).ok_or_else(|| {
                     format!("Missing position for neural network index {}", nn_idx)
                 })?;
-                *pos = *pos - *home_pos as f64;
+                *pos -= *home_pos as f64;
             }
+
+            // Multiply velocities by slowdown factor
+            // if slowdown_factor != 1.0 {
+            //     velocities = velocities
+            //         .iter()
+            //         .map(|v| v * slowdown_factor as f64)
+            //         .collect::<Vec<_>>();
+            // }
 
             // Convert from degrees to radians.
             positions = positions

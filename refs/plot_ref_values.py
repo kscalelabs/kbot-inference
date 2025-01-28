@@ -30,6 +30,28 @@ JOINT_NAMES = [
     "right_wrist_02",
 ]
 
+# Add joint groups constant after JOINT_NAMES
+JOINT_GROUPS = {
+    'left_leg': ['left_hip_pitch_04', 'left_hip_roll_03', 'left_hip_yaw_03', 'left_knee_04', 'left_ankle_02'],
+    'right_leg': ['right_hip_pitch_04', 'right_hip_roll_03', 'right_hip_yaw_03', 'right_knee_04', 'right_ankle_02'],
+    'left_arm': ['left_shoulder_pitch_03', 'left_shoulder_roll_03', 'left_shoulder_yaw_02', 'left_elbow_02', 'left_wrist_02'],
+    'right_arm': ['right_shoulder_pitch_03', 'right_shoulder_roll_03', 'right_shoulder_yaw_02', 'right_elbow_02', 'right_wrist_02'],
+}
+
+def plot_joint_group(time, data, joint_group_name, joint_names, ylabel, title, output_path):
+    """Helper function to plot a group of joints."""
+    plt.figure(figsize=(12, 6))
+    for name in joint_names:
+        idx = JOINT_NAMES.index(name)
+        plt.plot(time, data[:, idx], label=name)
+    plt.xlabel("Time (s)")
+    plt.ylabel(ylabel)
+    plt.title(f"{title} - {joint_group_name.replace('_', ' ').title()}")
+    plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(output_path)
+    plt.close()
 
 def plot_nn_data(data_path: Path, output_dir: Path) -> None:
     """Plot neural network input and output values from a numpy file.
@@ -84,66 +106,65 @@ def plot_nn_data(data_path: Path, output_dir: Path) -> None:
     plt.savefig(output_dir / "projected_gravity.png")
     plt.close()
 
-    # Plot joint positions
-    plt.figure(figsize=fig_size)
-    for i, name in enumerate(JOINT_NAMES):
-        plt.plot(time, joint_pos[:, i], label=name)
-    plt.xlabel("Time (s)")
-    plt.ylabel("Joint Position (rad)")
-    plt.title("Joint Positions Over Time")
-    plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
-    plt.tight_layout()
-    plt.savefig(output_dir / "joint_positions.png")
-    plt.close()
+    # Replace the joint positions plot with grouped plots
+    for group_name, joint_list in JOINT_GROUPS.items():
+        plot_joint_group(
+            time,
+            joint_pos,
+            group_name,
+            joint_list,
+            "Joint Position (rad)",
+            "Joint Positions Over Time",
+            output_dir / f"joint_positions_{group_name}.png"
+        )
 
-    # Plot joint velocities
-    plt.figure(figsize=fig_size)
-    for i, name in enumerate(JOINT_NAMES):
-        plt.plot(time, joint_vel[:, i], label=name)
-    plt.xlabel("Time (s)")
-    plt.ylabel("Joint Velocity (rad/s)")
-    plt.title("Joint Velocities Over Time")
-    plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
-    plt.tight_layout()
-    plt.savefig(output_dir / "joint_velocities.png")
-    plt.close()
+    # Replace the joint velocities plot with grouped plots
+    for group_name, joint_list in JOINT_GROUPS.items():
+        plot_joint_group(
+            time,
+            joint_vel,
+            group_name,
+            joint_list,
+            "Joint Velocity (rad/s)",
+            "Joint Velocities Over Time",
+            output_dir / f"joint_velocities_{group_name}.png"
+        )
 
-    # Plot previous actions
-    plt.figure(figsize=fig_size)
-    for i, name in enumerate(JOINT_NAMES):
-        plt.plot(time, actions[:, i], label=name)
-    plt.xlabel("Time (s)")
-    plt.ylabel("Action Value")
-    plt.title("Previous Actions Over Time")
-    plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
-    plt.tight_layout()
-    plt.savefig(output_dir / "previous_actions.png")
-    plt.close()
+    # Replace the previous actions plot with grouped plots
+    for group_name, joint_list in JOINT_GROUPS.items():
+        plot_joint_group(
+            time,
+            actions,
+            group_name,
+            joint_list,
+            "Action Value",
+            "Previous Actions Over Time",
+            output_dir / f"previous_actions_{group_name}.png"
+        )
 
-    # Plot outputs
-    plt.figure(figsize=fig_size)
-    for i, name in enumerate(JOINT_NAMES):
-        plt.plot(time, outputs[:, i], label=name)
-    plt.xlabel("Time (s)")
-    plt.ylabel("Output Value")
-    plt.title("Neural Network Outputs Over Time")
-    plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
-    plt.tight_layout()
-    plt.savefig(output_dir / "nn_outputs.png")
-    plt.close()
+    # Replace the outputs plot with grouped plots
+    for group_name, joint_list in JOINT_GROUPS.items():
+        plot_joint_group(
+            time,
+            outputs,
+            group_name,
+            joint_list,
+            "Output Value",
+            "Neural Network Outputs Over Time",
+            output_dir / f"nn_outputs_{group_name}.png"
+        )
 
-    # Plot scaled outputs.
-    scale = 0.5
-    plt.figure(figsize=fig_size)
-    for i, name in enumerate(JOINT_NAMES):
-        plt.plot(time, outputs[:, i] * scale, label=name)
-    plt.xlabel("Time (s)")
-    plt.ylabel("Output Value")
-    plt.title("Scaled Neural Network Outputs Over Time")
-    plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
-    plt.tight_layout()
-    plt.savefig(output_dir / "scaled_nn_outputs.png")
-    plt.close()
+    # Replace the scaled outputs plot with grouped plots
+    for group_name, joint_list in JOINT_GROUPS.items():
+        plot_joint_group(
+            time,
+            outputs * 0.5,
+            group_name,
+            joint_list,
+            "Scaled Output Value",
+            "Scaled Neural Network Outputs Over Time",
+            output_dir / f"scaled_nn_outputs_{group_name}.png"
+        )
 
 
 def main():
