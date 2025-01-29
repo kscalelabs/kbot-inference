@@ -32,8 +32,12 @@ CARGO_RUN := $(ONNX_ENV) RUST_LOG=debug cargo run
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-run: ## Run the model with hardware
+run:
+	$(CARGO_RUN) --bin run_model -- $(MODEL_PATH) --torque-enabled
+
+no-torque-run:
 	$(CARGO_RUN) --bin run_model -- $(MODEL_PATH)
+
 
 dry-run: ## Run the model without hardware access
 	$(CARGO_RUN) --bin run_model -- $(MODEL_PATH) --dry-run
