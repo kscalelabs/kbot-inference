@@ -32,13 +32,40 @@ JOINT_NAMES = [
 
 # Add joint groups constant after JOINT_NAMES
 JOINT_GROUPS = {
-    'left_leg': ['left_hip_pitch_04', 'left_hip_roll_03', 'left_hip_yaw_03', 'left_knee_04', 'left_ankle_02'],
-    'right_leg': ['right_hip_pitch_04', 'right_hip_roll_03', 'right_hip_yaw_03', 'right_knee_04', 'right_ankle_02'],
-    'left_arm': ['left_shoulder_pitch_03', 'left_shoulder_roll_03', 'left_shoulder_yaw_02', 'left_elbow_02', 'left_wrist_02'],
-    'right_arm': ['right_shoulder_pitch_03', 'right_shoulder_roll_03', 'right_shoulder_yaw_02', 'right_elbow_02', 'right_wrist_02'],
+    "left_leg": [
+        "left_hip_pitch_04",
+        "left_hip_roll_03",
+        "left_hip_yaw_03",
+        "left_knee_04",
+        "left_ankle_02",
+    ],
+    "right_leg": [
+        "right_hip_pitch_04",
+        "right_hip_roll_03",
+        "right_hip_yaw_03",
+        "right_knee_04",
+        "right_ankle_02",
+    ],
+    "left_arm": [
+        "left_shoulder_pitch_03",
+        "left_shoulder_roll_03",
+        "left_shoulder_yaw_02",
+        "left_elbow_02",
+        "left_wrist_02",
+    ],
+    "right_arm": [
+        "right_shoulder_pitch_03",
+        "right_shoulder_roll_03",
+        "right_shoulder_yaw_02",
+        "right_elbow_02",
+        "right_wrist_02",
+    ],
 }
 
-def plot_joint_group(time, data, joint_group_name, joint_names, ylabel, title, output_path):
+
+def plot_joint_group(
+    time, data, joint_group_name, joint_names, ylabel, title, output_path
+):
     """Helper function to plot a group of joints."""
     plt.figure(figsize=(12, 6))
     for name in joint_names:
@@ -53,6 +80,7 @@ def plot_joint_group(time, data, joint_group_name, joint_names, ylabel, title, o
     plt.savefig(output_path)
     plt.close()
 
+
 def plot_nn_data(data_path: Path, output_dir: Path) -> None:
     """Plot neural network input and output values from a numpy file.
 
@@ -63,9 +91,11 @@ def plot_nn_data(data_path: Path, output_dir: Path) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Load data
-    data = np.load(data_path)
-    inputs = data["inputs"].reshape(-1, 66)  # (N, 1, 66) -> (N, 66)
-    outputs = data["outputs"].reshape(-1, 20)  # (N, 1, 20) -> (N, 20)
+    data: dict[str, np.ndarray] = np.load(data_path)
+
+    # (N, 1, *) -> (N, *)
+    inputs = data["inputs"].squeeze(axis=1)
+    outputs = data["outputs"].squeeze(axis=1)
 
     # Create time array
     time = np.arange(len(inputs)) / 50  # Assuming 50Hz sampling rate
@@ -75,10 +105,12 @@ def plot_nn_data(data_path: Path, output_dir: Path) -> None:
 
     # Split inputs into their components
     vel_commands = inputs[:, 0:3]
-    projected_gravity = inputs[:, 3:6]
-    joint_pos = inputs[:, 6:26]
-    joint_vel = inputs[:, 26:46]
-    actions = inputs[:, 46:66]
+    imu_lin_acc = inputs[:, 3:6]
+    imu_ang_vel = inputs[:, 6:9]
+    projected_gravity = inputs[:, 9:12]
+    joint_pos = inputs[:, 12:32]
+    joint_vel = inputs[:, 32:52]
+    actions = inputs[:, 52:72]
 
     # Plot velocity commands
     plt.figure(figsize=fig_size)
@@ -90,7 +122,33 @@ def plot_nn_data(data_path: Path, output_dir: Path) -> None:
     plt.title("Velocity Commands Over Time")
     plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
     plt.tight_layout()
-    plt.savefig(output_dir / "velocity_commands.png")
+    plt.savefig(output_dir / "inputs_velocity_commands.png")
+    plt.close()
+
+    # Plot IMU linear acceleration
+    plt.figure(figsize=fig_size)
+    labels = ["x", "y", "z"]
+    for i, label in enumerate(labels):
+        plt.plot(time, imu_lin_acc[:, i], label=label)
+    plt.xlabel("Time (s)")
+    plt.ylabel("Linear Acceleration")
+    plt.title("IMU Linear Acceleration Over Time")
+    plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
+    plt.tight_layout()
+    plt.savefig(output_dir / "inputs_imu_lin_acc.png")
+    plt.close()
+
+    # Plot IMU angular velocity
+    plt.figure(figsize=fig_size)
+    labels = ["x", "y", "z"]
+    for i, label in enumerate(labels):
+        plt.plot(time, imu_ang_vel[:, i], label=label)
+    plt.xlabel("Time (s)")
+    plt.ylabel("Angular Velocity")
+    plt.title("IMU Angular Velocity Over Time")
+    plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
+    plt.tight_layout()
+    plt.savefig(output_dir / "inputs_imu_ang_vel.png")
     plt.close()
 
     # Plot projected gravity
@@ -103,7 +161,7 @@ def plot_nn_data(data_path: Path, output_dir: Path) -> None:
     plt.title("Projected Gravity Over Time")
     plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
     plt.tight_layout()
-    plt.savefig(output_dir / "projected_gravity.png")
+    plt.savefig(output_dir / "inputs_projected_gravity.png")
     plt.close()
 
     # Replace the joint positions plot with grouped plots
@@ -115,7 +173,7 @@ def plot_nn_data(data_path: Path, output_dir: Path) -> None:
             joint_list,
             "Joint Position (rad)",
             "Joint Positions Over Time",
-            output_dir / f"joint_positions_{group_name}.png"
+            output_dir / f"inputs_joint_positions_{group_name}.png",
         )
 
     # Replace the joint velocities plot with grouped plots
@@ -127,7 +185,7 @@ def plot_nn_data(data_path: Path, output_dir: Path) -> None:
             joint_list,
             "Joint Velocity (rad/s)",
             "Joint Velocities Over Time",
-            output_dir / f"joint_velocities_{group_name}.png"
+            output_dir / f"inputs_joint_velocities_{group_name}.png",
         )
 
     # Replace the previous actions plot with grouped plots
@@ -139,7 +197,7 @@ def plot_nn_data(data_path: Path, output_dir: Path) -> None:
             joint_list,
             "Action Value",
             "Previous Actions Over Time",
-            output_dir / f"previous_actions_{group_name}.png"
+            output_dir / f"inputs_previous_actions_{group_name}.png",
         )
 
     # Replace the outputs plot with grouped plots
@@ -151,19 +209,7 @@ def plot_nn_data(data_path: Path, output_dir: Path) -> None:
             joint_list,
             "Output Value",
             "Neural Network Outputs Over Time",
-            output_dir / f"nn_outputs_{group_name}.png"
-        )
-
-    # Replace the scaled outputs plot with grouped plots
-    for group_name, joint_list in JOINT_GROUPS.items():
-        plot_joint_group(
-            time,
-            outputs * 0.5,
-            group_name,
-            joint_list,
-            "Scaled Output Value",
-            "Scaled Neural Network Outputs Over Time",
-            output_dir / f"scaled_nn_outputs_{group_name}.png"
+            output_dir / f"outputs_{group_name}.png",
         )
 
 
