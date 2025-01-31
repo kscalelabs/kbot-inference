@@ -39,7 +39,15 @@ JOINT_GROUPS = {
     'right_arm': ['right_shoulder_pitch_03', 'right_shoulder_roll_03', 'right_shoulder_yaw_02', 'right_elbow_02', 'right_wrist_02'],
 }
 
-def plot_joint_group(time, data, joint_group_name, joint_names, ylabel, title, output_path, rate=50.0):
+def plot_joint_group(
+    time: np.ndarray,
+    data: pd.DataFrame,
+    joint_group_name: str,
+    joint_names: list[str],
+    ylabel: str,
+    title: str,
+    output_path: Path,
+) -> None:
     """Helper function to plot a group of joints."""
     plt.figure(figsize=(12, 6))
     for name in joint_names:
@@ -80,15 +88,17 @@ def plot_nn_data(obs_df: pd.DataFrame, actions_df: pd.DataFrame, output_dir: Pat
 
     # Split observations into their components
     vel_commands = obs_df[["obs_0", "obs_1", "obs_2"]]
-    projected_gravity = obs_df[["obs_3", "obs_4", "obs_5"]]
+    lin_acc = obs_df[[f"obs_{i}" for i in range(3, 6)]]
+    ang_vel = obs_df[[f"obs_{i}" for i in range(6, 9)]]
+    projected_gravity = obs_df[[f"obs_{i}" for i in range(9, 12)]]
     joint_pos = pd.DataFrame({
-        f"joint_{i}": obs_df[f"obs_{i+6}"] for i in range(20)
+        f"joint_{i}": obs_df[f"obs_{i+12}"] for i in range(20)
     })
     joint_vel = pd.DataFrame({
-        f"joint_{i}": obs_df[f"obs_{i+26}"] for i in range(20)
+        f"joint_{i}": obs_df[f"obs_{i+32}"] for i in range(20)
     })
     prev_actions = pd.DataFrame({
-        f"action_{i}": obs_df[f"obs_{i+46}"] for i in range(20)
+        f"action_{i}": obs_df[f"obs_{i+42}"] for i in range(20)
     })
 
     # Plot velocity commands
@@ -102,21 +112,49 @@ def plot_nn_data(obs_df: pd.DataFrame, actions_df: pd.DataFrame, output_dir: Pat
     plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
     plt.grid(True)
     plt.tight_layout()
-    plt.savefig(output_dir / "velocity_commands.png")
+    plt.savefig(output_dir / "inputs_velocity_commands.png")
+    plt.close()
+
+    # Plot linear acceleration
+    plt.figure(figsize=fig_size)
+    labels = ["x", "y", "z"]
+    for i, label in enumerate(labels):
+        plt.plot(time, lin_acc[f"obs_{i+3}"], label=label)
+    plt.xlabel("Time (s)")
+    plt.ylabel("Linear Acceleration")
+    plt.title("Linear Acceleration Over Time")
+    plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(output_dir / "inputs_imu_lin_acc.png")
+    plt.close()
+
+    # Plot angular velocity
+    plt.figure(figsize=fig_size)
+    labels = ["x", "y", "z"]
+    for i, label in enumerate(labels):
+        plt.plot(time, ang_vel[f"obs_{i+6}"], label=label)
+    plt.xlabel("Time (s)")
+    plt.ylabel("Angular Velocity")
+    plt.title("Angular Velocity Over Time")
+    plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(output_dir / "inputs_imu_ang_vel.png")
     plt.close()
 
     # Plot projected gravity
     plt.figure(figsize=fig_size)
     labels = ["x", "y", "z"]
     for i, label in enumerate(labels):
-        plt.plot(time, projected_gravity[f"obs_{i+3}"], label=label)
+        plt.plot(time, projected_gravity[f"obs_{i+9}"], label=label)
     plt.xlabel("Time (s)")
-    plt.ylabel("Gravity Vector")
+    plt.ylabel("Projected Gravity")
     plt.title("Projected Gravity Over Time")
     plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
     plt.grid(True)
     plt.tight_layout()
-    plt.savefig(output_dir / "projected_gravity.png")
+    plt.savefig(output_dir / "inputs_projected_gravity.png")
     plt.close()
 
     # Plot joint positions by group
@@ -128,7 +166,7 @@ def plot_nn_data(obs_df: pd.DataFrame, actions_df: pd.DataFrame, output_dir: Pat
             joint_list,
             "Joint Position (rad)",
             "Joint Positions Over Time",
-            output_dir / f"joint_positions_{group_name}.png"
+            output_dir / f"inputs_joint_positions_{group_name}.png"
         )
 
     # Plot joint velocities by group
@@ -140,7 +178,7 @@ def plot_nn_data(obs_df: pd.DataFrame, actions_df: pd.DataFrame, output_dir: Pat
             joint_list,
             "Joint Velocity (rad/s)",
             "Joint Velocities Over Time",
-            output_dir / f"joint_velocities_{group_name}.png"
+            output_dir / f"inputs_joint_velocities_{group_name}.png"
         )
 
     # Plot previous actions by group
@@ -152,7 +190,7 @@ def plot_nn_data(obs_df: pd.DataFrame, actions_df: pd.DataFrame, output_dir: Pat
             joint_list,
             "Previous Action Value",
             "Previous Actions Over Time",
-            output_dir / f"previous_actions_{group_name}.png"
+            output_dir / f"inputs_previous_actions_{group_name}.png"
         )
 
     # Plot neural network outputs by group
@@ -168,23 +206,7 @@ def plot_nn_data(obs_df: pd.DataFrame, actions_df: pd.DataFrame, output_dir: Pat
         plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
         plt.grid(True)
         plt.tight_layout()
-        plt.savefig(output_dir / f"nn_actions_{group_name}.png")
-        plt.close()
-
-    # Plot scaled neural network outputs by group
-    scale = 0.5
-    for group_name, joint_list in JOINT_GROUPS.items():
-        plt.figure(figsize=(12, 6))
-        for name in joint_list:
-            idx = JOINT_NAMES.index(name)
-            plt.plot(actions_time, actions_df[f"action_{idx}"] * scale, label=name)
-        plt.xlabel("Time (s)")
-        plt.ylabel("Scaled Action Value")
-        plt.title(f"Scaled Neural Network Actions Over Time - {group_name.replace('_', ' ').title()}")
-        plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
-        plt.grid(True)
-        plt.tight_layout()
-        plt.savefig(output_dir / f"scaled_nn_actions_{group_name}.png")
+        plt.savefig(output_dir / f"outputs_{group_name}.png")
         plt.close()
 
 

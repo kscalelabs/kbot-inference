@@ -281,7 +281,7 @@ impl Actuator {
         let control_config = ControlConfig {
             kp: config.kp.unwrap_or(0.0) as f32,
             kd: config.kd.unwrap_or(0.0) as f32,
-            max_torque: Some(config.max_torque.unwrap_or(2.0) as f32),
+            max_torque: config.max_torque.map(|t| t as f32),
             max_velocity: Some(5.0),
             max_current: Some(10.0),
         };
@@ -330,7 +330,7 @@ impl Actuator {
     }
 
     pub fn create_kbot_actuators() -> Vec<(u8, ActuatorConfiguration)> {
-        let max_angle_change = 180.0f32.to_radians();
+        let max_angle_change = 5.0f32; // Percent
         let max_velocity = 10.0f32.to_radians();
 
         vec![

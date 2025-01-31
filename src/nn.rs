@@ -3,6 +3,7 @@ use crate::{
     constants::*,
     imu::IMU,
 };
+use eyre::eyre;
 use ndarray;
 use ort::{session::builder::GraphOptimizationLevel, session::Session, Error as OrtError};
 use std::time::Duration;
@@ -19,7 +20,7 @@ impl NeuralNetworkRunner {
             .with_intra_threads(4)?
             .commit_from_file(model_path)?;
 
-        let obs = ndarray::Array2::<f32>::zeros((1, 66));
+        let obs = ndarray::Array2::<f32>::zeros((1, 72));
 
         // Populate the last command vector.
         let mut start_commands = vec![];
@@ -39,12 +40,12 @@ impl NeuralNetworkRunner {
         self.obs.ncols()
     }
 
-    pub fn get_action_size(&self) -> usize {
+    pub fn get_action_size() -> usize {
         ACTUATOR_ID_MAP.len()
     }
 
     pub async fn get_targets() -> Result<[f32; 3], Box<dyn std::error::Error>> {
-        Ok([1.0, 0.0, 0.0]) // x_vel, y_vel, rot
+        Ok([0.0, 0.0, 0.0]) // x_vel, y_vel, rot
     }
 
     pub async fn get_dof_pos_and_vel(
@@ -60,20 +61,28 @@ impl NeuralNetworkRunner {
             let mut velocities = vec![0.0; ACTUATOR_ID_MAP.len()];
 
             // Map actuator values to their neural network indices
-            for (i, state_value) in state.iter().enumerate() {
-                if let Some(actuator_id) = actuator_ids.get(i) {
-                    // Find the corresponding neural network index
-                    if let Some((_, nn_idx, is_inverted)) = ACTUATOR_ID_MAP
-                        .iter()
-                        .find(|(id, _, _)| *id == *actuator_id)
-                    {
-                        let pos = state_value.position.unwrap_or(0.0);
-                        let vel = state_value.velocity.unwrap_or(0.0);
+            for actuator_id in actuator_ids.iter() {
+                let state = state.iter().find(|s| s.actuator_id == *actuator_id as u32);
+                let nn_index = ACTUATOR_ID_MAP
+                    .iter()
+                    .find(|(id, _, _)| *id == *actuator_id)
+                    .map(|(_, nn_idx, _)| *nn_idx);
 
-                        // Apply inversion if needed
-                        positions[*nn_idx] = if *is_inverted { -pos } else { pos };
-                        velocities[*nn_idx] = if *is_inverted { -vel } else { vel };
+                if let Some(nn_index) = nn_index {
+                    if let Some(state) = state {
+                        positions[nn_index] = state.position.unwrap_or(0.0);
+                        velocities[nn_index] = state.velocity.unwrap_or(0.0);
+                    } else {
+                        return Err(eyre!(
+                            "Actuator ID {} not found in state response",
+                            *actuator_id
+                        )
+                        .into());
                     }
+                } else {
+                    return Err(
+                        eyre!("Actuator ID {} not found in ACTUATOR_ID_MAP", *actuator_id).into(),
+                    );
                 }
             }
 
@@ -85,13 +94,24 @@ impl NeuralNetworkRunner {
                 *pos -= *home_pos as f64;
             }
 
+            // Scale positions.
+            // let scale = 0.5;
+            // positions = positions
+            //     .iter()
+            //     .map(|p| p / scale as f64)
+            //     .collect::<Vec<_>>();
+            // velocities = velocities
+            //     .iter()
+            //     .map(|v| v / scale as f64)
+            //     .collect::<Vec<_>>();
+
             // Multiply velocities by slowdown factor
-            // if slowdown_factor != 1.0 {
-            //     velocities = velocities
-            //         .iter()
-            //         .map(|v| v * slowdown_factor as f64)
-            //         .collect::<Vec<_>>();
-            // }
+            if slowdown_factor != 1.0 {
+                velocities = velocities
+                    .iter()
+                    .map(|v| v * slowdown_factor as f64)
+                    .collect::<Vec<_>>();
+            }
 
             // Convert from degrees to radians.
             positions = positions
@@ -135,29 +155,35 @@ impl NeuralNetworkRunner {
         Ok([gx, gy, gz])
     }
 
-    pub async fn get_imu_values(imu: &Option<IMU>) -> Result<[f32; 3], Box<dyn std::error::Error>> {
+    pub async fn get_imu_values(imu: &Option<IMU>) -> Result<[f32; 9], Box<dyn std::error::Error>> {
         if let Some(imu) = imu {
             let imu_values = imu.get_values().await?;
+
+            // Linear acceleration.
+            let ax = -imu_values.accel_x as f32;
+            let ay = -imu_values.accel_y as f32;
+            let az = -imu_values.accel_z as f32;
+
+            // Angular velocity.
+            let wx = imu_values.gyro_x as f32 * std::f32::consts::PI / 180.0;
+            let wy = imu_values.gyro_y as f32 * std::f32::consts::PI / 180.0;
+            let wz = imu_values.gyro_z as f32 * std::f32::consts::PI / 180.0;
+
+            // Gravity vector.
             let gravity =
                 Self::euler_angles_to_gravity(imu_values.roll as f32, imu_values.pitch as f32)?;
-
-            // These are the sensor values read by the IMU. We need to convert
-            // them to the neural network input space. Since the neural network
-            // uses the gravity vector relative to the base frame, we need to
-            // convert from the IMU frame to the base frame.
             let gx = gravity[0];
             let gy = gravity[1];
             let gz = gravity[2];
 
-            Ok([gx, gy, gz])
+            Ok([ax, ay, az, wx, wy, wz, gx, gy, gz])
         } else {
             // Return zeros in dry run mode
-            Ok([0.0; 3])
+            Ok([0.0; 9])
         }
     }
 
     pub async fn update_commands(
-        &mut self,
         actions: ndarray::Array2<f32>,
     ) -> Result<Vec<ActuatorCommand>, Box<dyn std::error::Error>> {
         // Convert from radians to degrees.
@@ -168,6 +194,8 @@ impl NeuralNetworkRunner {
 
         // Add back the home position
         let mut final_actions = actions.to_owned();
+
+        // Add back the home position.
         for (nn_idx, home_pos) in NN_HOME_POSITION.iter() {
             final_actions[[0, *nn_idx]] += home_pos;
         }
@@ -204,7 +232,6 @@ impl NeuralNetworkRunner {
     }
 
     pub async fn take_action(
-        &mut self,
         commands: Vec<ActuatorCommand>,
         actuators: &Option<Actuator>,
     ) -> Result<Duration, Box<dyn std::error::Error>> {
@@ -225,7 +252,6 @@ impl NeuralNetworkRunner {
     }
 
     pub async fn take_action_slowed(
-        &mut self,
         start_commands: Vec<ActuatorCommand>,
         end_commands: Vec<ActuatorCommand>,
         total_delay: Duration,
@@ -273,12 +299,12 @@ impl NeuralNetworkRunner {
 
         let imu_values = imu_values?;
         self.obs
-            .slice_mut(ndarray::s![0, 3..6])
+            .slice_mut(ndarray::s![0, 3..12])
             .assign(&ndarray::Array1::from_vec(imu_values.to_vec()));
 
         let dof_values = dof_values?;
         self.obs
-            .slice_mut(ndarray::s![0, 6..46])
+            .slice_mut(ndarray::s![0, 12..52])
             .assign(&ndarray::Array1::from_vec(dof_values.to_vec()));
 
         Ok((self.obs.clone(), sensor_time))
@@ -297,7 +323,7 @@ impl NeuralNetworkRunner {
 
         // Update the observation buffer with the new actions
         self.obs
-            .slice_mut(ndarray::s![0, 46..66])
+            .slice_mut(ndarray::s![0, 52..72])
             .assign(&actions_array.slice(ndarray::s![0, ..]));
 
         Ok((actions_array.to_owned(), inference_time))

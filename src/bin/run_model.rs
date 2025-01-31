@@ -35,6 +35,10 @@ struct Args {
     #[arg(long, value_name = "FACTOR", default_value = "1.0")]
     slowdown_factor: f64,
 
+    /// Slowdown factor for moving to the initial home position.
+    #[arg(long, value_name = "FACTOR", default_value = "50.0")]
+    home_slowdown_factor: f64,
+
     /// Log neural network inputs and outputs to CSV files
     #[arg(long)]
     log_nn_io: bool,
@@ -71,7 +75,7 @@ async fn run_model(args: Args) -> Result<(), Box<dyn std::error::Error>> {
         writeln!(file)?;
     }
     if let Some(file) = &mut actions_file {
-        for i in 0..nn_runner.get_action_size() {
+        for i in 0..NeuralNetworkRunner::get_action_size() {
             write!(
                 file,
                 "{}{}",
@@ -124,6 +128,26 @@ async fn run_model(args: Args) -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
+    // First, we slowly move the actuators to the home position, then sleep for 5 seconds.
+    if args.torque_enabled && !args.dry_run {
+        tracing::info!("Moving to home position");
+        let home_array = ndarray::Array2::zeros((1, NeuralNetworkRunner::get_action_size()));
+        let home_commands = NeuralNetworkRunner::update_commands(home_array).await?;
+        NeuralNetworkRunner::take_action_slowed(
+            prev_commands.clone(),
+            home_commands.clone(),
+            Duration::from_millis((args.home_slowdown_factor * 1000.0 / target_loop_rate) as u64),
+            args.home_slowdown_factor as usize,
+            &actuators,
+        )
+        .await?;
+        prev_commands = home_commands;
+
+        tracing::info!("Sleeping for 2 seconds");
+        tokio::time::sleep(Duration::from_secs(2)).await;
+    }
+
+    tracing::info!("Starting main loop");
     loop {
         let (obs, sensor_time) = nn_runner
             .update_observation(
@@ -155,21 +179,21 @@ async fn run_model(args: Args) -> Result<(), Box<dyn std::error::Error>> {
         }
 
         // Takes the action.
-        let commands = nn_runner.update_commands(actions).await?;
+        let commands = NeuralNetworkRunner::update_commands(actions).await?;
 
         if args.slowdown_factor == 1.0 {
-            let action_time = nn_runner.take_action(commands.clone(), &actuators).await?;
+            let action_time =
+                NeuralNetworkRunner::take_action(commands.clone(), &actuators).await?;
             total_iteration_time += action_time;
         } else {
-            let action_time = nn_runner
-                .take_action_slowed(
-                    prev_commands.clone(),
-                    commands.clone(),
-                    target_loop_interval,
-                    args.slowdown_factor as usize,
-                    &actuators,
-                )
-                .await?;
+            let action_time = NeuralNetworkRunner::take_action_slowed(
+                prev_commands.clone(),
+                commands.clone(),
+                target_loop_interval,
+                args.slowdown_factor as usize,
+                &actuators,
+            )
+            .await?;
             total_iteration_time += action_time;
         }
 

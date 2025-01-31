@@ -33,14 +33,13 @@ help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 run:
-	$(CARGO_RUN) --bin run_model -- $(MODEL_PATH) --torque-enabled
+	$(CARGO_RUN) --bin run_model -- $(MODEL_PATH) --torque-enabled --log-nn-io
 
 no-torque-run:
-	$(CARGO_RUN) --bin run_model -- $(MODEL_PATH)
-
+	$(CARGO_RUN) --bin run_model -- $(MODEL_PATH) --log-nn-io
 
 dry-run: ## Run the model without hardware access
-	$(CARGO_RUN) --bin run_model -- $(MODEL_PATH) --dry-run
+	$(CARGO_RUN) --bin run_model -- $(MODEL_PATH) --dry-run --log-nn-io
 
 slow-run: ## Run the model at reduced speed (with hardware)
 	$(CARGO_RUN) --bin run_model -- $(MODEL_PATH) --slowdown-factor $(SLOWDOWN_FACTOR) --torque-enabled --log-nn-io

@@ -40,13 +40,6 @@ pub async fn initialize_hardware(
                 let kp = row.1;
                 let kd = row.2;
                 let max_torque = row.3;
-                tracing::info!(
-                    "Configuring actuator {} with kp={}, kd={}, max_torque={}",
-                    id,
-                    kp,
-                    kd,
-                    max_torque
-                );
                 if let Err(e) = actuators
                     .configure_actuator(actuators::ConfigureRequest {
                         actuator_id: *id as u32,

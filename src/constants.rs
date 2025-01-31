@@ -24,28 +24,43 @@ pub const ACTUATOR_ID_MAP: [(u8, usize, bool); 20] = [
     (45, 18, true),  // right_ankle_02
 ];
 
+const KP_02: f32 = 20.0;
+const KD_02: f32 = 2.0;
+const TAU_02: f32 = 17.0;
+// const TAU_02: f32 = 2.0;
+
+const KP_03: f32 = 150.0;
+const KD_03: f32 = 5.0;
+const TAU_03: f32 = 60.0;
+// const TAU_03: f32 = 5.0;
+
+const KP_04: f32 = 200.0;
+const KD_04: f32 = 5.0;
+const TAU_04: f32 = 120.0;
+// const TAU_04: f32 = 15.0;
+
 // This is a mapping from the actuator ID to the PID gains and torque limits.
 pub const ACTUATOR_KP_KD: [(usize, f32, f32, f32); 20] = [
-    (11, 60.0, 5.0, 60.0),   // left_shoulder_pitch_03
-    (12, 60.0, 5.0, 60.0),   // left_shoulder_roll_03
-    (13, 20.0, 2.0, 17.0),   // left_shoulder_yaw_02
-    (14, 20.0, 2.0, 17.0),   // left_elbow_02
-    (15, 20.0, 2.0, 17.0),   // left_wrist_02
-    (21, 60.0, 5.0, 60.0),   // right_shoulder_pitch_03
-    (22, 60.0, 5.0, 60.0),   // right_shoulder_roll_03
-    (23, 20.0, 2.0, 17.0),   // right_shoulder_yaw_02
-    (24, 20.0, 2.0, 17.0),   // right_elbow_02
-    (25, 20.0, 2.0, 17.0),   // right_wrist_02
-    (31, 150.0, 5.0, 120.0), // left_hip_pitch_04
-    (32, 60.0, 5.0, 60.0),   // left_hip_roll_03
-    (33, 60.0, 5.0, 60.0),   // left_hip_yaw_03
-    (34, 150.0, 5.0, 120.0), // left_knee_04
-    (35, 20.0, 2.0, 17.0),   // left_ankle_02
-    (41, 150.0, 5.0, 120.0), // right_hip_pitch_04
-    (42, 60.0, 5.0, 60.0),   // right_hip_roll_03
-    (43, 60.0, 5.0, 60.0),   // right_hip_yaw_03
-    (44, 150.0, 5.0, 120.0), // right_knee_04
-    (45, 20.0, 2.0, 17.0),   // right_ankle_02
+    (11, KP_02, KD_02, TAU_02), // left_shoulder_pitch_03
+    (12, KP_03, KD_03, TAU_03), // left_shoulder_roll_03
+    (13, KP_02, KD_02, TAU_02), // left_shoulder_yaw_02
+    (14, KP_02, KD_02, TAU_02), // left_elbow_02
+    (15, KP_02, KD_02, TAU_02), // left_wrist_02
+    (21, KP_02, KD_02, TAU_02), // right_shoulder_pitch_03
+    (22, KP_03, KD_03, TAU_03), // right_shoulder_roll_03
+    (23, KP_02, KD_02, TAU_02), // right_shoulder_yaw_02
+    (24, KP_02, KD_02, TAU_02), // right_elbow_02
+    (25, KP_02, KD_02, TAU_02), // right_wrist_02
+    (31, KP_04, KD_04, TAU_04), // left_hip_pitch_04
+    (32, KP_03, KD_03, TAU_03), // left_hip_roll_03
+    (33, KP_02, KD_02, TAU_02), // left_hip_yaw_03
+    (34, KP_04, KD_04, TAU_04), // left_knee_04
+    (35, KP_02, KD_02, TAU_02), // left_ankle_02
+    (41, KP_04, KD_04, TAU_04), // right_hip_pitch_04
+    (42, KP_03, KD_03, TAU_03), // right_hip_roll_03
+    (43, KP_02, KD_02, TAU_02), // right_hip_yaw_03
+    (44, KP_04, KD_04, TAU_04), // right_knee_04
+    (45, KP_02, KD_02, TAU_02), // right_ankle_02
 ];
 
 // We define a "home position" for the robot when training the neural network,
