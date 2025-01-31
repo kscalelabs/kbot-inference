@@ -58,3 +58,6 @@ read-nn-values: ## Read and display neural network values
 
 zero-actuators: ## Zero all actuators on the robot
 	$(CARGO_RUN) --bin zero_actuators
+
+get-stats: ## Get stats about the robot
+	$(CARGO_RUN) --bin get_stats
