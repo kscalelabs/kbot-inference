@@ -88,17 +88,17 @@ def plot_nn_data(obs_df: pd.DataFrame, actions_df: pd.DataFrame, output_dir: Pat
 
     # Split observations into their components
     vel_commands = obs_df[["obs_0", "obs_1", "obs_2"]]
-    lin_acc = obs_df[[f"obs_{i}" for i in range(3, 6)]]
-    ang_vel = obs_df[[f"obs_{i}" for i in range(6, 9)]]
-    projected_gravity = obs_df[[f"obs_{i}" for i in range(9, 12)]]
+    # lin_acc = obs_df[[f"obs_{i}" for i in range(3, 6)]]
+    # ang_vel = obs_df[[f"obs_{i}" for i in range(6, 9)]]
+    projected_gravity = obs_df[[f"obs_{i}" for i in range(3, 6)]]
     joint_pos = pd.DataFrame({
-        f"joint_{i}": obs_df[f"obs_{i+12}"] for i in range(20)
+        f"joint_{i}": obs_df[f"obs_{i+6}"] for i in range(20)
     })
     joint_vel = pd.DataFrame({
-        f"joint_{i}": obs_df[f"obs_{i+32}"] for i in range(20)
+        f"joint_{i}": obs_df[f"obs_{i+26}"] for i in range(20)
     })
     prev_actions = pd.DataFrame({
-        f"action_{i}": obs_df[f"obs_{i+42}"] for i in range(20)
+        f"action_{i}": obs_df[f"obs_{i+46}"] for i in range(20)
     })
 
     # Plot velocity commands
@@ -116,38 +116,38 @@ def plot_nn_data(obs_df: pd.DataFrame, actions_df: pd.DataFrame, output_dir: Pat
     plt.close()
 
     # Plot linear acceleration
-    plt.figure(figsize=fig_size)
-    labels = ["x", "y", "z"]
-    for i, label in enumerate(labels):
-        plt.plot(time, lin_acc[f"obs_{i+3}"], label=label)
-    plt.xlabel("Time (s)")
-    plt.ylabel("Linear Acceleration")
-    plt.title("Linear Acceleration Over Time")
-    plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
-    plt.grid(True)
-    plt.tight_layout()
-    plt.savefig(output_dir / "inputs_imu_lin_acc.png")
-    plt.close()
+    # plt.figure(figsize=fig_size)
+    # labels = ["x", "y", "z"]
+    # for i, label in enumerate(labels):
+    #     plt.plot(time, lin_acc[f"obs_{i+3}"], label=label)
+    # plt.xlabel("Time (s)")
+    # plt.ylabel("Linear Acceleration")
+    # plt.title("Linear Acceleration Over Time")
+    # plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
+    # plt.grid(True)
+    # plt.tight_layout()
+    # plt.savefig(output_dir / "inputs_imu_lin_acc.png")
+    # plt.close()
 
     # Plot angular velocity
-    plt.figure(figsize=fig_size)
-    labels = ["x", "y", "z"]
-    for i, label in enumerate(labels):
-        plt.plot(time, ang_vel[f"obs_{i+6}"], label=label)
-    plt.xlabel("Time (s)")
-    plt.ylabel("Angular Velocity")
-    plt.title("Angular Velocity Over Time")
-    plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
-    plt.grid(True)
-    plt.tight_layout()
-    plt.savefig(output_dir / "inputs_imu_ang_vel.png")
-    plt.close()
+    # plt.figure(figsize=fig_size)
+    # labels = ["x", "y", "z"]
+    # for i, label in enumerate(labels):
+    #     plt.plot(time, ang_vel[f"obs_{i+6}"], label=label)
+    # plt.xlabel("Time (s)")
+    # plt.ylabel("Angular Velocity")
+    # plt.title("Angular Velocity Over Time")
+    # plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
+    # plt.grid(True)
+    # plt.tight_layout()
+    # plt.savefig(output_dir / "inputs_imu_ang_vel.png")
+    # plt.close()
 
     # Plot projected gravity
     plt.figure(figsize=fig_size)
     labels = ["x", "y", "z"]
     for i, label in enumerate(labels):
-        plt.plot(time, projected_gravity[f"obs_{i+9}"], label=label)
+        plt.plot(time, projected_gravity[f"obs_{i+3}"], label=label)
     plt.xlabel("Time (s)")
     plt.ylabel("Projected Gravity")
     plt.title("Projected Gravity Over Time")
