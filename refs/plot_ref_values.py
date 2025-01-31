@@ -64,7 +64,13 @@ JOINT_GROUPS = {
 
 
 def plot_joint_group(
-    time, data, joint_group_name, joint_names, ylabel, title, output_path
+    time,
+    data,
+    joint_group_name,
+    joint_names,
+    ylabel,
+    title,
+    output_path,
 ):
     """Helper function to plot a group of joints."""
     plt.figure(figsize=(12, 6))
@@ -104,13 +110,13 @@ def plot_nn_data(data_path: Path, output_dir: Path) -> None:
     fig_size = (48, 12)
 
     # Split inputs into their components
-    vel_commands = inputs[:, 0:3]
-    imu_lin_acc = inputs[:, 3:6]
-    imu_ang_vel = inputs[:, 6:9]
-    projected_gravity = inputs[:, 9:12]
-    joint_pos = inputs[:, 12:32]
-    joint_vel = inputs[:, 32:52]
-    actions = inputs[:, 52:72]
+    vel_commands, inputs = inputs[:, :3], inputs[:, 3:]
+    # imu_lin_acc, inputs = inputs[:, :3], inputs[:, 3:]
+    # imu_ang_vel, inputs = inputs[:, :3], inputs[:, 3:]
+    projected_gravity, inputs = inputs[:, :3], inputs[:, 3:]
+    joint_pos, inputs = inputs[:, :20], inputs[:, 20:]
+    joint_vel, inputs = inputs[:, :20], inputs[:, 20:]
+    actions = inputs[:, :20]
 
     # Plot velocity commands
     plt.figure(figsize=fig_size)
@@ -126,30 +132,30 @@ def plot_nn_data(data_path: Path, output_dir: Path) -> None:
     plt.close()
 
     # Plot IMU linear acceleration
-    plt.figure(figsize=fig_size)
-    labels = ["x", "y", "z"]
-    for i, label in enumerate(labels):
-        plt.plot(time, imu_lin_acc[:, i], label=label)
-    plt.xlabel("Time (s)")
-    plt.ylabel("Linear Acceleration")
-    plt.title("IMU Linear Acceleration Over Time")
-    plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
-    plt.tight_layout()
-    plt.savefig(output_dir / "inputs_imu_lin_acc.png")
-    plt.close()
+    # plt.figure(figsize=fig_size)
+    # labels = ["x", "y", "z"]
+    # for i, label in enumerate(labels):
+    #     plt.plot(time, imu_lin_acc[:, i], label=label)
+    # plt.xlabel("Time (s)")
+    # plt.ylabel("Linear Acceleration")
+    # plt.title("IMU Linear Acceleration Over Time")
+    # plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
+    # plt.tight_layout()
+    # plt.savefig(output_dir / "inputs_imu_lin_acc.png")
+    # plt.close()
 
     # Plot IMU angular velocity
-    plt.figure(figsize=fig_size)
-    labels = ["x", "y", "z"]
-    for i, label in enumerate(labels):
-        plt.plot(time, imu_ang_vel[:, i], label=label)
-    plt.xlabel("Time (s)")
-    plt.ylabel("Angular Velocity")
-    plt.title("IMU Angular Velocity Over Time")
-    plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
-    plt.tight_layout()
-    plt.savefig(output_dir / "inputs_imu_ang_vel.png")
-    plt.close()
+    # plt.figure(figsize=fig_size)
+    # labels = ["x", "y", "z"]
+    # for i, label in enumerate(labels):
+    #     plt.plot(time, imu_ang_vel[:, i], label=label)
+    # plt.xlabel("Time (s)")
+    # plt.ylabel("Angular Velocity")
+    # plt.title("IMU Angular Velocity Over Time")
+    # plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
+    # plt.tight_layout()
+    # plt.savefig(output_dir / "inputs_imu_ang_vel.png")
+    # plt.close()
 
     # Plot projected gravity
     plt.figure(figsize=fig_size)
