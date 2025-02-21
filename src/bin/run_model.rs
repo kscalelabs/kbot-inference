@@ -64,7 +64,8 @@ async fn run_model(args: Args) -> Result<(), Box<dyn std::error::Error>> {
 
     // Write headers
     if let Some(file) = &mut obs_file {
-        for i in 0..nn_runner.get_observation_size() {
+        let header_count = 1 + 1 + 1 + 1 + 10 + 10 + 10 + 3; // x_vel, y_vel, rot, t, dof_pos, dof_vel, prev_actions, projected_gravity
+        for i in 0..header_count {
             write!(
                 file,
                 "{}{}",
@@ -162,7 +163,7 @@ async fn run_model(args: Args) -> Result<(), Box<dyn std::error::Error>> {
 
         // Log observations if enabled
         if let Some(file) = &mut obs_file {
-            // Log all components of the NetworkInput
+            // Log all components of the NetworkInput except buffer
             let mut values: Vec<f32> = Vec::new();
             values.extend(input.x_vel.iter());
             values.extend(input.y_vel.iter());
@@ -172,7 +173,6 @@ async fn run_model(args: Args) -> Result<(), Box<dyn std::error::Error>> {
             values.extend(input.dof_vel.iter());
             values.extend(input.prev_actions.iter());
             values.extend(input.projected_gravity.iter());
-            values.extend(input.buffer.iter());
 
             for (i, &value) in values.iter().enumerate() {
                 write!(file, "{}{:.20e}", if i == 0 { "" } else { "," }, value)?;

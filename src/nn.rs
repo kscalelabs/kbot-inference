@@ -93,7 +93,7 @@ impl NeuralNetworkRunner {
     }
 
     pub async fn get_targets() -> Result<[f32; 3], Box<dyn std::error::Error>> {
-        Ok([0.0, 0.0, 0.0]) // x_vel, y_vel, rot
+        Ok([0.5, 0.0, 0.0]) // x_vel, y_vel, rot
     }
 
     pub async fn get_dof_pos_and_vel(
