@@ -160,14 +160,14 @@ impl NeuralNetworkRunner {
                 .collect();
 
             // Create array and copy positions and velocities into it
-            let mut result = [0.0; 40];
-            result[..20].copy_from_slice(&positions);
-            result[20..].copy_from_slice(&velocities);
+            let mut result = [0.0; 20];
+            result[..10].copy_from_slice(&positions);
+            result[10..].copy_from_slice(&velocities);
 
             Ok(result.map(|x| x as f32))
         } else {
             // Return zeros in dry run mode
-            Ok([0.0; 40])
+            Ok([0.0; 20])
         }
     }
 
