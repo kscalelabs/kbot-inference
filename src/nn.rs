@@ -10,7 +10,44 @@ use std::time::Duration;
 
 pub struct NeuralNetworkRunner {
     model: Session,
-    obs: ndarray::Array2<f32>,
+    x_vel: ndarray::Array2<f32>,
+    y_vel: ndarray::Array2<f32>,
+    rot: ndarray::Array2<f32>,
+    t: ndarray::Array2<f32>,
+    dof_pos: ndarray::Array2<f32>,
+    dof_vel: ndarray::Array2<f32>,
+    prev_actions: ndarray::Array2<f32>,
+    projected_gravity: ndarray::Array2<f32>,
+    buffer: ndarray::Array2<f32>,
+}
+
+#[derive(Clone)]
+pub struct NetworkInput {
+    pub x_vel: ndarray::Array2<f32>,
+    pub y_vel: ndarray::Array2<f32>,
+    pub rot: ndarray::Array2<f32>,
+    pub t: ndarray::Array2<f32>,
+    pub dof_pos: ndarray::Array2<f32>,
+    pub dof_vel: ndarray::Array2<f32>,
+    pub prev_actions: ndarray::Array2<f32>,
+    pub projected_gravity: ndarray::Array2<f32>,
+    pub buffer: ndarray::Array2<f32>,
+}
+
+impl NetworkInput {
+    pub fn new() -> Self {
+        Self {
+            x_vel: ndarray::Array2::<f32>::zeros((1, 1)),
+            y_vel: ndarray::Array2::<f32>::zeros((1, 1)),
+            rot: ndarray::Array2::<f32>::zeros((1, 1)),
+            t: ndarray::Array2::<f32>::zeros((1, 1)),
+            dof_pos: ndarray::Array2::<f32>::zeros((1, 10)),
+            dof_vel: ndarray::Array2::<f32>::zeros((1, 10)),
+            prev_actions: ndarray::Array2::<f32>::zeros((1, 10)),
+            projected_gravity: ndarray::Array2::<f32>::zeros((1, 3)),
+            buffer: ndarray::Array2::<f32>::zeros((1, 570)),
+        }
+    }
 }
 
 impl NeuralNetworkRunner {
@@ -20,24 +57,23 @@ impl NeuralNetworkRunner {
             .with_intra_threads(4)?
             .commit_from_file(model_path)?;
 
-        let obs = ndarray::Array2::<f32>::zeros((1, 66));
-
-        // Populate the last command vector.
-        let mut start_commands = vec![];
-        for (actuator_id, _, _) in ACTUATOR_ID_MAP.iter() {
-            start_commands.push(ActuatorCommand {
-                actuator_id: *actuator_id as u32,
-                position: Some(0.0),
-                velocity: None,
-                torque: None,
-            });
-        }
-
-        Ok(Self { model, obs })
+        // Initialize all input buffers
+        Ok(Self {
+            model,
+            x_vel: ndarray::Array2::<f32>::zeros((1, 1)),
+            y_vel: ndarray::Array2::<f32>::zeros((1, 1)), 
+            rot: ndarray::Array2::<f32>::zeros((1, 1)),
+            t: ndarray::Array2::<f32>::zeros((1, 1)),
+            dof_pos: ndarray::Array2::<f32>::zeros((1, 10)),
+            dof_vel: ndarray::Array2::<f32>::zeros((1, 10)),
+            prev_actions: ndarray::Array2::<f32>::zeros((1, 10)),
+            projected_gravity: ndarray::Array2::<f32>::zeros((1, 3)),
+            buffer: ndarray::Array2::<f32>::zeros((1, 570)),
+        })
     }
 
     pub fn get_observation_size(&self) -> usize {
-        self.obs.ncols()
+        self.x_vel.ncols() + self.y_vel.ncols() + self.rot.ncols() + self.t.ncols() + self.dof_pos.ncols() + self.dof_vel.ncols() + self.prev_actions.ncols() + self.projected_gravity.ncols() + self.buffer.ncols()
     }
 
     pub fn get_action_size() -> usize {
@@ -283,7 +319,7 @@ impl NeuralNetworkRunner {
         actuators: &Option<Actuator>,
         actuator_ids: &Vec<u8>,
         slowdown_factor: f32,
-    ) -> Result<(ndarray::Array2<f32>, Duration), Box<dyn std::error::Error>> {
+    ) -> Result<(NetworkInput, Duration), Box<dyn std::error::Error>> {
         let sensor_start = tokio::time::Instant::now();
         let (targets, imu_values, dof_values) = tokio::join!(
             Self::get_targets(),
@@ -292,41 +328,76 @@ impl NeuralNetworkRunner {
         );
         let sensor_time = sensor_start.elapsed();
 
+        let mut input = NetworkInput::new();
+        
         // Update observation vector
         let targets = targets?;
-        self.obs
-            .slice_mut(ndarray::s![0, 0..3])
-            .assign(&ndarray::Array1::from_vec(targets.to_vec()));
+        input.x_vel.slice_mut(ndarray::s![0, 0..1])
+            .assign(&ndarray::Array1::from_vec(targets[0..1].to_vec()));
+        input.y_vel.slice_mut(ndarray::s![0, 0..1])
+            .assign(&ndarray::Array1::from_vec(targets[1..2].to_vec()));
+        input.rot.slice_mut(ndarray::s![0, 0..1])
+            .assign(&ndarray::Array1::from_vec(targets[2..3].to_vec()));
 
         let imu_values = imu_values?;
-        self.obs
-            .slice_mut(ndarray::s![0, 3..6])
+        input.projected_gravity.slice_mut(ndarray::s![0, 0..3])
             .assign(&ndarray::Array1::from_vec(imu_values.to_vec()));
 
         let dof_values = dof_values?;
-        self.obs
-            .slice_mut(ndarray::s![0, 6..46])
-            .assign(&ndarray::Array1::from_vec(dof_values.to_vec()));
+        input.dof_pos.slice_mut(ndarray::s![0, 0..10])
+            .assign(&ndarray::Array1::from_vec(dof_values[0..10].to_vec()));
+        input.dof_vel.slice_mut(ndarray::s![0, 0..10])
+            .assign(&ndarray::Array1::from_vec(dof_values[10..20].to_vec()));
 
-        Ok((self.obs.clone(), sensor_time))
+        // Copy current state
+        input.prev_actions = self.prev_actions.clone();
+        input.buffer = self.buffer.clone();
+
+        Ok((input, sensor_time))
     }
 
     pub fn run_inference(
         &mut self,
-        obs: ndarray::Array2<f32>,
+        input: NetworkInput,
+        start_time: std::time::Instant,
     ) -> Result<(ndarray::Array2<f32>, Duration), Box<dyn std::error::Error>> {
         let inference_start = tokio::time::Instant::now();
-        let outputs = self.model.run(ort::inputs!["obs" => obs]?)?;
+
+        // Update timestamp in the input
+        let mut input = input;
+        input.t[[0, 0]] = start_time.elapsed().as_secs_f32();
+
+        let inputs = ort::inputs! {
+            "x_vel.1" => input.x_vel,
+            "y_vel.1" => input.y_vel,
+            "rot.1" => input.rot,
+            "t.1" => input.t,
+            "dof_pos.1" => input.dof_pos,
+            "dof_vel.1" => input.dof_vel,
+            "prev_actions.1" => input.prev_actions,
+            "projected_gravity.1" => input.projected_gravity,
+            "buffer.1" => input.buffer,
+        }?;
+
+        let outputs = self.model.run(inputs)?;
+        
+        // Extract actions and update internal buffers
         let actions = outputs[0].try_extract_tensor::<f32>()?;
+        let actions_array = actions.into_shape_with_order(ndarray::Ix2(1, self.get_action_size()))?;
+        
+        // Update prev_actions from the model output named "actions"
+        if let Some(raw_actions) = outputs.iter().find(|o| o.name == "actions") {
+            let actions = raw_actions.try_extract_tensor::<f32>()?;
+            self.prev_actions = actions.into_shape_with_order(ndarray::Ix2(1, self.get_action_size()))?;
+        }
+
+        // Update history buffer from the model output named "x.3"
+        if let Some(new_buffer) = outputs.iter().find(|o| o.name == "x.3") {
+            let buffer = new_buffer.try_extract_tensor::<f32>()?;
+            self.buffer = buffer.into_shape_with_order(ndarray::Ix2(1, 570))?;
+        }
+
         let inference_time = inference_start.elapsed();
-
-        let actions_array = actions.into_shape_with_order(ndarray::Ix2(1, 20))?;
-
-        // Update the observation buffer with the new actions
-        self.obs
-            .slice_mut(ndarray::s![0, 46..66])
-            .assign(&actions_array.slice(ndarray::s![0, ..]));
-
         Ok((actions_array.to_owned(), inference_time))
     }
 }

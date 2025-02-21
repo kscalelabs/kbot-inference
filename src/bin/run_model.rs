@@ -91,6 +91,7 @@ async fn run_model(args: Args) -> Result<(), Box<dyn std::error::Error>> {
         return Err("Slowdown factor must be greater than 0".into());
     }
 
+    let start_time = std::time::Instant::now();
     let target_loop_rate = 50.0;
     let target_loop_interval =
         Duration::from_millis((args.slowdown_factor * 1000.0 / target_loop_rate) as u64);
@@ -149,7 +150,7 @@ async fn run_model(args: Args) -> Result<(), Box<dyn std::error::Error>> {
 
     tracing::info!("Starting main loop");
     loop {
-        let (obs, sensor_time) = nn_runner
+        let (input, sensor_time) = nn_runner
             .update_observation(
                 &imu,
                 &actuators,
@@ -161,13 +162,25 @@ async fn run_model(args: Args) -> Result<(), Box<dyn std::error::Error>> {
 
         // Log observations if enabled
         if let Some(file) = &mut obs_file {
-            for (i, &value) in obs.iter().enumerate() {
+            // Log all components of the NetworkInput
+            let mut values = Vec::new();
+            values.extend(input.x_vel.iter());
+            values.extend(input.y_vel.iter());
+            values.extend(input.rot.iter());
+            values.extend(input.t.iter());
+            values.extend(input.dof_pos.iter());
+            values.extend(input.dof_vel.iter());
+            values.extend(input.prev_actions.iter());
+            values.extend(input.projected_gravity.iter());
+            values.extend(input.buffer.iter());
+
+            for (i, &value) in values.iter().enumerate() {
                 write!(file, "{}{:.20e}", if i == 0 { "" } else { "," }, value)?;
             }
             writeln!(file)?;
         }
 
-        let (actions, inference_time) = nn_runner.run_inference(obs)?;
+        let (actions, inference_time) = nn_runner.run_inference(input, start_time)?;
         total_iteration_time += inference_time;
 
         // Log actions if enabled
@@ -178,12 +191,11 @@ async fn run_model(args: Args) -> Result<(), Box<dyn std::error::Error>> {
             writeln!(file)?;
         }
 
-        // Takes the action.
+        // Takes the action
         let commands = NeuralNetworkRunner::update_commands(actions).await?;
 
         if args.slowdown_factor == 1.0 {
-            let action_time =
-                NeuralNetworkRunner::take_action(commands.clone(), &actuators).await?;
+            let action_time = NeuralNetworkRunner::take_action(commands.clone(), &actuators).await?;
             total_iteration_time += action_time;
         } else {
             let action_time = NeuralNetworkRunner::take_action_slowed(
@@ -218,10 +230,9 @@ async fn run_model(args: Args) -> Result<(), Box<dyn std::error::Error>> {
             total_iteration_time = Duration::ZERO;
         }
 
-        // Sleep until the next loop time.
+        // Sleep until the next loop time
         next_loop_time += target_loop_interval;
-        if let Some(sleep_duration) =
-            next_loop_time.checked_duration_since(tokio::time::Instant::now())
+        if let Some(sleep_duration) = next_loop_time.checked_duration_since(tokio::time::Instant::now())
         {
             tokio::time::sleep(sleep_duration).await;
         }
