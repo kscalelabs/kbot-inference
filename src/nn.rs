@@ -323,8 +323,7 @@ impl NeuralNetworkRunner {
         );
         let sensor_time = sensor_start.elapsed();
 
-        let mut input = NetworkInput::new();
-        
+        let mut input = NetworkInput::new();        
         // Update observation vector
         let targets = targets?;
         input.x_vel.slice_mut(ndarray::s![0..1])
@@ -361,6 +360,8 @@ impl NeuralNetworkRunner {
         // Update timestamp in the input
         let mut input = input;
         input.t[[0]] = start_time.elapsed().as_secs_f32();
+
+        input.dof_pos[[4]] = (start_time.elapsed().as_secs_f32()).sin();
 
         let inputs = ort::inputs! {
             "x_vel.1" => input.x_vel,

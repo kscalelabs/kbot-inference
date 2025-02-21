@@ -27,9 +27,38 @@ def plot_comparison(rust_log_dir: Path, python_log_dir: Path, time_window: float
         ax.plot(rust_times, rust_actions[f'action_{idx}'], 'b-', label='Rust', alpha=0.7)
         ax.plot(python_times, python_actions[f'action_{idx}'], 'r--', label='Python', alpha=0.7)
         
-        # Add vertical lines every 0.4 seconds
-        for t in np.arange(0, time_window + 0.4, 0.4):
+        # Add vertical lines and points every 0.4 seconds
+        time_points = np.arange(0, time_window + 0.4, 0.4)
+        for i, t in enumerate(time_points):
+            # Add vertical line
             ax.axvline(x=t, color='gray', linestyle=':', alpha=0.3)
+            
+            # Find nearest points in both datasets
+            rust_idx = int(t * 50)  # Convert time to index (50Hz)
+            python_idx = int(t * 50)
+            
+            if rust_idx < len(rust_times) and python_idx < len(python_times):
+                # Add larger, brighter points
+                ax.plot(t, rust_actions[f'action_{idx}'].iloc[rust_idx], 'bo', markersize=8, alpha=1.0)
+                ax.plot(t, python_actions[f'action_{idx}'].iloc[python_idx], 'ro', markersize=8, alpha=1.0)
+                
+                # Connect to next point with dotted line (if not the last point)
+                if i < len(time_points) - 1:
+                    next_t = time_points[i + 1]
+                    next_rust_idx = int(next_t * 50)
+                    next_python_idx = int(next_t * 50)
+                    
+                    if next_rust_idx < len(rust_times):
+                        ax.plot([t, next_t], 
+                               [rust_actions[f'action_{idx}'].iloc[rust_idx],
+                                rust_actions[f'action_{idx}'].iloc[next_rust_idx]], 
+                               'b:', alpha=1.0)
+                    
+                    if next_python_idx < len(python_times):
+                        ax.plot([t, next_t], 
+                               [python_actions[f'action_{idx}'].iloc[python_idx],
+                                python_actions[f'action_{idx}'].iloc[next_python_idx]], 
+                               'r:', alpha=1.0)
             
         ax.set_title(f'{joint}')
         ax.set_xlabel('Time (s)')
