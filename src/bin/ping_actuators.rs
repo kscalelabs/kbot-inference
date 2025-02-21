@@ -34,6 +34,7 @@ async fn scan_for_actuators(args: Args) -> Result<(), Box<dyn std::error::Error>
             actuator_type: ActuatorType::RobStride03,
             max_angle_change: None,
             max_velocity: None,
+            command_rate_hz: Some(100.0),
         },
     )];
 

@@ -48,6 +48,18 @@ impl NetworkInput {
             buffer: ndarray::Array2::<f32>::zeros((1, 570)),
         }
     }
+
+    pub fn iter(&self) -> impl Iterator<Item = &f32> {
+        self.x_vel.iter()
+            .chain(self.y_vel.iter())
+            .chain(self.rot.iter())
+            .chain(self.t.iter())
+            .chain(self.dof_pos.iter())
+            .chain(self.dof_vel.iter())
+            .chain(self.prev_actions.iter())
+            .chain(self.projected_gravity.iter())
+            .chain(self.buffer.iter())
+    }
 }
 
 impl NeuralNetworkRunner {
