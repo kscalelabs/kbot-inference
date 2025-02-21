@@ -98,7 +98,7 @@ async def dry_run_walking(
             gvec[0] = -gvec[0]
             gvec[1] = -gvec[1]
 
-            cur_pos_obs = positions - default
+            cur_pos_obs = positions
             cur_vel_obs = velocities
 
             # Update input data
