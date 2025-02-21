@@ -26,6 +26,11 @@ def plot_comparison(rust_log_dir: Path, python_log_dir: Path, time_window: float
     for idx, (joint, ax) in enumerate(zip(joint_names, axes.flatten())):
         ax.plot(rust_times, rust_actions[f'action_{idx}'], 'b-', label='Rust', alpha=0.7)
         ax.plot(python_times, python_actions[f'action_{idx}'], 'r--', label='Python', alpha=0.7)
+        
+        # Add vertical lines every 0.4 seconds
+        for t in np.arange(0, time_window + 0.4, 0.4):
+            ax.axvline(x=t, color='gray', linestyle=':', alpha=0.3)
+            
         ax.set_title(f'{joint}')
         ax.set_xlabel('Time (s)')
         ax.set_ylabel('Position (rad)')

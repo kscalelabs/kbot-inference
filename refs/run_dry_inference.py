@@ -88,13 +88,13 @@ async def dry_run_walking(
         start_time = time.time()
         end_time = None if num_seconds is None else start_time + num_seconds
 
-        while end_time is None or time.time() < end_time:
-            loop_start_time = time.time()
+        next_time = start_time + 1 / frequency
 
+        while end_time is None or time.time() < end_time:
             # Zero positions and velocities for dry run
             positions = np.zeros(10)
             velocities = np.zeros(10)
-            gvec = np.array([0.0, 0.0, -1.0])
+            gvec = np.array([0.0, 0.0, 0.0])
             gvec[0] = -gvec[0]
             gvec[1] = -gvec[1]
 
@@ -139,10 +139,8 @@ async def dry_run_walking(
             target_q = positions + default
             print(f"Time: {time.time() - start_time:.3f}, Actions: {target_q}")
 
-            waiting_time = 1 / frequency
-            loop_end_time = time.time()
-            sleep_time = max(0, waiting_time - (loop_end_time - loop_start_time))
-            await asyncio.sleep(sleep_time)
+            await asyncio.sleep(max(0, next_time - time.time()))
+            next_time += 1 / frequency
 
     finally:
         obs_file.close()
