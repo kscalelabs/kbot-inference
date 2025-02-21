@@ -206,26 +206,9 @@ impl NeuralNetworkRunner {
     pub async fn get_imu_values(imu: &Option<IMU>) -> Result<[f32; 3], Box<dyn std::error::Error>> {
         if let Some(imu) = imu {
             let imu_values = imu.get_values().await?;
-
-            // // Linear acceleration.
-            // let ax = -imu_values.accel_x as f32;
-            // let ay = -imu_values.accel_y as f32;
-            // let az = -imu_values.accel_z as f32;
-
-            // // Angular velocity.
-            // let wx = imu_values.gyro_x as f32 * std::f32::consts::PI / 180.0;
-            // let wy = imu_values.gyro_y as f32 * std::f32::consts::PI / 180.0;
-            // let wz = imu_values.gyro_z as f32 * std::f32::consts::PI / 180.0;
-
-            // Gravity vector.
-            let gravity =
-                Self::euler_angles_to_gravity(imu_values.roll as f32, imu_values.pitch as f32)?;
-            let gx = gravity[0];
-            let gy = gravity[1];
-            let gz = gravity[2];
-
-            // Ok([ax, ay, az, wx, wy, wz, gx, gy, gz])
-            Ok([gx, gy, gz])
+            let gravity = Self::euler_angles_to_gravity(imu_values.roll as f32, imu_values.pitch as f32)?;
+            
+            Ok([-gravity[0], -gravity[1], gravity[2]])
         } else {
             // Return zeros in dry run mode
             Ok([0.0; 3])
@@ -239,7 +222,7 @@ impl NeuralNetworkRunner {
         let actions = actions * 180.0 / std::f32::consts::PI;
 
         // Apply scaling factor.
-        let actions = actions * 0.5;
+        // let actions = actions * 0.5;
 
         // Add back the home position
         let mut final_actions = actions.to_owned();
@@ -393,26 +376,24 @@ impl NeuralNetworkRunner {
 
         let outputs = self.model.run(inputs)?;
         
-        // Extract actions and update internal buffers
-        let actions = outputs[0].try_extract_tensor::<f32>()?;
-        let actions_array = actions.into_shape_with_order(ndarray::Ix2(1, Self::get_action_size()))?;
+        // Extract scaled actions for output
+        let actions_scaled = outputs.get("actions_scaled")
+            .ok_or_else(|| eyre!("Missing actions_scaled output"))?
+            .try_extract_tensor::<f32>()?;
+        let actions_array = actions_scaled.into_shape_with_order(ndarray::Ix2(1, Self::get_action_size()))?;
         
         // Update prev_actions and buffer from the model output
-        for (name, output) in outputs.iter() {
-            match name {
-                "actions" => {
-                    let actions = output.try_extract_tensor::<f32>()?;
-                    let temp_actions_array = actions.into_shape_with_order(ndarray::Ix1(10))?;
-                    self.prev_actions = temp_actions_array.to_owned();
-                }
-                "x.3" => {
-                    let buffer = output.try_extract_tensor::<f32>()?;
-                    let buffer_array = buffer.into_shape_with_order(ndarray::Ix1(570))?;
-                    self.buffer = buffer_array.to_owned();
-                }
-                _ => {}
-            }
-        }
+        let actions = outputs.get("actions")
+            .ok_or_else(|| eyre!("Missing actions output"))?
+            .try_extract_tensor::<f32>()?;
+        let temp_actions_array = actions.into_shape_with_order(ndarray::Ix1(10))?;
+        self.prev_actions = temp_actions_array.to_owned();
+
+        let buffer = outputs.get("x.3")
+            .ok_or_else(|| eyre!("Missing buffer output"))?
+            .try_extract_tensor::<f32>()?;
+        let buffer_array = buffer.into_shape_with_order(ndarray::Ix1(570))?;
+        self.buffer = buffer_array.to_owned();
 
         let inference_time = inference_start.elapsed();
         Ok((actions_array.to_owned(), inference_time))

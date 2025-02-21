@@ -11,3 +11,5 @@ Cargo.lock
 sensor_logs*/
 nn_logs*/
 plots/
+
+*/comparisons/
