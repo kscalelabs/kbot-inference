@@ -22,4 +22,4 @@ csv = "1.3"
 [target.'cfg(target_os = "linux")'.dependencies]
 chrono = "0.4"
 hiwonder = "=0.2.1"
-robstride = "0.3.0"
+robstride = {version="0.3.4", features=["instant_command"]}

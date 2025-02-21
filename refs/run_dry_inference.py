@@ -95,7 +95,7 @@ async def dry_run_walking(
             positions = np.zeros(10)
             positions[4] = math.sin(time.time() - start_time)
             velocities = np.zeros(10)
-            gvec = np.array([0.0, 0.0, math.sin(time.time() - start_time)])
+            gvec = np.array([0.0, 0.0, 0.0])
             gvec[0] = -gvec[0]
             gvec[1] = -gvec[1]
 

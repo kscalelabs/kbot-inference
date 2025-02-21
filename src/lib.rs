@@ -26,7 +26,7 @@ pub async fn initialize_hardware(
             actuators::Actuator::new(
                 vec!["can0", "can1", "can2", "can3", "can4"],
                 Duration::from_millis(100),
-                Duration::from_millis(20),
+                Duration::from_millis(2),
                 &kbot_actuators,
             )
         )?;
