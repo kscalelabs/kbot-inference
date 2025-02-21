@@ -19,7 +19,7 @@ else
 endif
 
 # Default model path
-MODEL_PATH ?= position_control.onnx
+MODEL_PATH ?= simple_walking.onnx
 
 # Default slowdown factor for slow modes
 SLOWDOWN_FACTOR ?= 250.0

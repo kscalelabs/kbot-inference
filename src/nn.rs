@@ -10,42 +10,42 @@ use std::time::Duration;
 
 pub struct NeuralNetworkRunner {
     model: Session,
-    x_vel: ndarray::Array2<f32>,
-    y_vel: ndarray::Array2<f32>,
-    rot: ndarray::Array2<f32>,
-    t: ndarray::Array2<f32>,
-    dof_pos: ndarray::Array2<f32>,
-    dof_vel: ndarray::Array2<f32>,
-    prev_actions: ndarray::Array2<f32>,
-    projected_gravity: ndarray::Array2<f32>,
-    buffer: ndarray::Array2<f32>,
+    x_vel: ndarray::Array1<f32>,
+    y_vel: ndarray::Array1<f32>,
+    rot: ndarray::Array1<f32>,
+    t: ndarray::Array1<f32>,
+    dof_pos: ndarray::Array1<f32>,
+    dof_vel: ndarray::Array1<f32>,
+    prev_actions: ndarray::Array1<f32>,
+    projected_gravity: ndarray::Array1<f32>,
+    buffer: ndarray::Array1<f32>,
 }
 
 #[derive(Clone)]
 pub struct NetworkInput {
-    pub x_vel: ndarray::Array2<f32>,
-    pub y_vel: ndarray::Array2<f32>,
-    pub rot: ndarray::Array2<f32>,
-    pub t: ndarray::Array2<f32>,
-    pub dof_pos: ndarray::Array2<f32>,
-    pub dof_vel: ndarray::Array2<f32>,
-    pub prev_actions: ndarray::Array2<f32>,
-    pub projected_gravity: ndarray::Array2<f32>,
-    pub buffer: ndarray::Array2<f32>,
+    pub x_vel: ndarray::Array1<f32>,
+    pub y_vel: ndarray::Array1<f32>,
+    pub rot: ndarray::Array1<f32>,
+    pub t: ndarray::Array1<f32>,
+    pub dof_pos: ndarray::Array1<f32>,
+    pub dof_vel: ndarray::Array1<f32>,
+    pub prev_actions: ndarray::Array1<f32>,
+    pub projected_gravity: ndarray::Array1<f32>,
+    pub buffer: ndarray::Array1<f32>,
 }
 
 impl NetworkInput {
     pub fn new() -> Self {
         Self {
-            x_vel: ndarray::Array2::<f32>::zeros((1, 1)),
-            y_vel: ndarray::Array2::<f32>::zeros((1, 1)),
-            rot: ndarray::Array2::<f32>::zeros((1, 1)),
-            t: ndarray::Array2::<f32>::zeros((1, 1)),
-            dof_pos: ndarray::Array2::<f32>::zeros((1, 10)),
-            dof_vel: ndarray::Array2::<f32>::zeros((1, 10)),
-            prev_actions: ndarray::Array2::<f32>::zeros((1, 10)),
-            projected_gravity: ndarray::Array2::<f32>::zeros((1, 3)),
-            buffer: ndarray::Array2::<f32>::zeros((1, 570)),
+            x_vel: ndarray::Array1::<f32>::zeros(1),
+            y_vel: ndarray::Array1::<f32>::zeros(1),
+            rot: ndarray::Array1::<f32>::zeros(1),
+            t: ndarray::Array1::<f32>::zeros(1),
+            dof_pos: ndarray::Array1::<f32>::zeros(10),
+            dof_vel: ndarray::Array1::<f32>::zeros(10),
+            prev_actions: ndarray::Array1::<f32>::zeros(10),
+            projected_gravity: ndarray::Array1::<f32>::zeros(3),
+            buffer: ndarray::Array1::<f32>::zeros(570),
         }
     }
 
@@ -72,20 +72,20 @@ impl NeuralNetworkRunner {
         // Initialize all input buffers
         Ok(Self {
             model,
-            x_vel: ndarray::Array2::<f32>::zeros((1, 1)),
-            y_vel: ndarray::Array2::<f32>::zeros((1, 1)), 
-            rot: ndarray::Array2::<f32>::zeros((1, 1)),
-            t: ndarray::Array2::<f32>::zeros((1, 1)),
-            dof_pos: ndarray::Array2::<f32>::zeros((1, 10)),
-            dof_vel: ndarray::Array2::<f32>::zeros((1, 10)),
-            prev_actions: ndarray::Array2::<f32>::zeros((1, 10)),
-            projected_gravity: ndarray::Array2::<f32>::zeros((1, 3)),
-            buffer: ndarray::Array2::<f32>::zeros((1, 570)),
+            x_vel: ndarray::Array1::<f32>::zeros(1),
+            y_vel: ndarray::Array1::<f32>::zeros(1), 
+            rot: ndarray::Array1::<f32>::zeros(1),
+            t: ndarray::Array1::<f32>::zeros(1),
+            dof_pos: ndarray::Array1::<f32>::zeros(10),
+            dof_vel: ndarray::Array1::<f32>::zeros(10),
+            prev_actions: ndarray::Array1::<f32>::zeros(10),
+            projected_gravity: ndarray::Array1::<f32>::zeros(3),
+            buffer: ndarray::Array1::<f32>::zeros(570),
         })
     }
 
     pub fn get_observation_size(&self) -> usize {
-        self.x_vel.ncols() + self.y_vel.ncols() + self.rot.ncols() + self.t.ncols() + self.dof_pos.ncols() + self.dof_vel.ncols() + self.prev_actions.ncols() + self.projected_gravity.ncols() + self.buffer.ncols()
+        self.x_vel.len() + self.y_vel.len() + self.rot.len() + self.t.len() + self.dof_pos.len() + self.dof_vel.len() + self.prev_actions.len() + self.projected_gravity.len() + self.buffer.len()
     }
 
     pub fn get_action_size() -> usize {
@@ -344,26 +344,26 @@ impl NeuralNetworkRunner {
         
         // Update observation vector
         let targets = targets?;
-        input.x_vel.slice_mut(ndarray::s![0, 0..1])
+        input.x_vel.slice_mut(ndarray::s![0..1])
             .assign(&ndarray::Array1::from_vec(targets[0..1].to_vec()));
-        input.y_vel.slice_mut(ndarray::s![0, 0..1])
+        input.y_vel.slice_mut(ndarray::s![0..1])
             .assign(&ndarray::Array1::from_vec(targets[1..2].to_vec()));
-        input.rot.slice_mut(ndarray::s![0, 0..1])
+        input.rot.slice_mut(ndarray::s![0..1])
             .assign(&ndarray::Array1::from_vec(targets[2..3].to_vec()));
 
         let imu_values = imu_values?;
-        input.projected_gravity.slice_mut(ndarray::s![0, 0..3])
+        input.projected_gravity.slice_mut(ndarray::s![0..3])
             .assign(&ndarray::Array1::from_vec(imu_values.to_vec()));
 
         let dof_values = dof_values?;
-        input.dof_pos.slice_mut(ndarray::s![0, 0..10])
+        input.dof_pos.slice_mut(ndarray::s![0..10])
             .assign(&ndarray::Array1::from_vec(dof_values[0..10].to_vec()));
-        input.dof_vel.slice_mut(ndarray::s![0, 0..10])
+        input.dof_vel.slice_mut(ndarray::s![0..10])
             .assign(&ndarray::Array1::from_vec(dof_values[10..20].to_vec()));
 
         // Copy current state
-        input.prev_actions = self.prev_actions.clone();
-        input.buffer = self.buffer.clone();
+        input.prev_actions = self.prev_actions.to_owned();
+        input.buffer = self.buffer.to_owned();
 
         Ok((input, sensor_time))
     }
@@ -377,7 +377,7 @@ impl NeuralNetworkRunner {
 
         // Update timestamp in the input
         let mut input = input;
-        input.t[[0, 0]] = start_time.elapsed().as_secs_f32();
+        input.t[[0]] = start_time.elapsed().as_secs_f32();
 
         let inputs = ort::inputs! {
             "x_vel.1" => input.x_vel,
@@ -402,12 +402,12 @@ impl NeuralNetworkRunner {
             match name {
                 "actions" => {
                     let actions = output.try_extract_tensor::<f32>()?;
-                    let temp_actions_array = actions.into_shape_with_order(ndarray::Ix2(1, Self::get_action_size()))?;
+                    let temp_actions_array = actions.into_shape_with_order(ndarray::Ix1(10))?;
                     self.prev_actions = temp_actions_array.to_owned();
                 }
                 "x.3" => {
                     let buffer = output.try_extract_tensor::<f32>()?;
-                    let buffer_array = buffer.into_shape_with_order(ndarray::Ix2(1, 570))?;
+                    let buffer_array = buffer.into_shape_with_order(ndarray::Ix1(570))?;
                     self.buffer = buffer_array.to_owned();
                 }
                 _ => {}
