@@ -330,8 +330,11 @@ impl Actuator {
     }
 
     pub fn create_kbot_actuators() -> Vec<(u8, ActuatorConfiguration)> {
-        let max_angle_change = 5.0f32; // Percent
-        let max_velocity = 10.0f32.to_radians();
+        // let max_angle_change = 5.0f32; // Percent
+        // let max_velocity = 10.0f32.to_radians();
+
+        let max_angle_change = 10.0f32;
+        let max_velocity: f32 = 200.0f32.to_radians();
 
         vec![
             // Left Arm (11-16)
