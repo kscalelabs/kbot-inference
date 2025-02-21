@@ -344,6 +344,7 @@ impl Actuator {
                     actuator_type: ActuatorType::RobStride03,
                     max_angle_change: Some(max_angle_change),
                     max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(100.0),
                 },
             ),
             (
@@ -352,6 +353,7 @@ impl Actuator {
                     actuator_type: ActuatorType::RobStride03,
                     max_angle_change: Some(max_angle_change),
                     max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(100.0),
                 },
             ),
             (
@@ -360,6 +362,7 @@ impl Actuator {
                     actuator_type: ActuatorType::RobStride02,
                     max_angle_change: Some(max_angle_change),
                     max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(100.0),
                 },
             ),
             (
@@ -368,6 +371,7 @@ impl Actuator {
                     actuator_type: ActuatorType::RobStride02,
                     max_angle_change: Some(max_angle_change),
                     max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(100.0),
                 },
             ),
             (
@@ -376,6 +380,7 @@ impl Actuator {
                     actuator_type: ActuatorType::RobStride02,
                     max_angle_change: Some(max_angle_change),
                     max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(100.0),
                 },
             ),
             // (
@@ -393,6 +398,7 @@ impl Actuator {
                     actuator_type: ActuatorType::RobStride03,
                     max_angle_change: Some(max_angle_change),
                     max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(100.0),
                 },
             ),
             (
@@ -401,6 +407,7 @@ impl Actuator {
                     actuator_type: ActuatorType::RobStride03,
                     max_angle_change: Some(max_angle_change),
                     max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(100.0),
                 },
             ),
             (
@@ -409,6 +416,7 @@ impl Actuator {
                     actuator_type: ActuatorType::RobStride02,
                     max_angle_change: Some(max_angle_change),
                     max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(100.0),
                 },
             ),
             (
@@ -417,6 +425,7 @@ impl Actuator {
                     actuator_type: ActuatorType::RobStride02,
                     max_angle_change: Some(max_angle_change),
                     max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(100.0),
                 },
             ),
             (
@@ -425,6 +434,7 @@ impl Actuator {
                     actuator_type: ActuatorType::RobStride02,
                     max_angle_change: Some(max_angle_change),
                     max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(100.0),
                 },
             ),
             // (
@@ -442,6 +452,7 @@ impl Actuator {
                     actuator_type: ActuatorType::RobStride04,
                     max_angle_change: Some(max_angle_change),
                     max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(100.0),
                 },
             ),
             (
@@ -450,6 +461,7 @@ impl Actuator {
                     actuator_type: ActuatorType::RobStride03,
                     max_angle_change: Some(max_angle_change),
                     max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(100.0),
                 },
             ),
             (
@@ -458,6 +470,7 @@ impl Actuator {
                     actuator_type: ActuatorType::RobStride03,
                     max_angle_change: Some(max_angle_change),
                     max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(100.0),
                 },
             ),
             (
@@ -466,6 +479,7 @@ impl Actuator {
                     actuator_type: ActuatorType::RobStride04,
                     max_angle_change: Some(max_angle_change),
                     max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(100.0),
                 },
             ),
             (
@@ -474,6 +488,7 @@ impl Actuator {
                     actuator_type: ActuatorType::RobStride02,
                     max_angle_change: Some(max_angle_change),
                     max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(100.0),
                 },
             ),
             // Right Leg (41-45)
@@ -483,6 +498,7 @@ impl Actuator {
                     actuator_type: ActuatorType::RobStride04,
                     max_angle_change: Some(max_angle_change),
                     max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(100.0),
                 },
             ),
             (
@@ -491,6 +507,7 @@ impl Actuator {
                     actuator_type: ActuatorType::RobStride03,
                     max_angle_change: Some(max_angle_change),
                     max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(100.0),
                 },
             ),
             (
@@ -499,6 +516,7 @@ impl Actuator {
                     actuator_type: ActuatorType::RobStride03,
                     max_angle_change: Some(max_angle_change),
                     max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(100.0),
                 },
             ),
             (
@@ -507,6 +525,7 @@ impl Actuator {
                     actuator_type: ActuatorType::RobStride04,
                     max_angle_change: Some(max_angle_change),
                     max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(100.0),
                 },
             ),
             (
@@ -515,6 +534,7 @@ impl Actuator {
                     actuator_type: ActuatorType::RobStride02,
                     max_angle_change: Some(max_angle_change),
                     max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(100.0),
                 },
             ),
         ]

@@ -1,7 +1,7 @@
 // Mapping from the neural network index to the actuator ID. This also includes
 // a flag indicating whether or not the real actuator orientation is flipped
 // relative to the URDF model.
-pub const ACTUATOR_ID_MAP: [(u8, usize, bool); 20] = [
+pub const ACTUATOR_ID_MAP: [(u8, usize, bool); 10] = [
     // (11, 1, false),  // left_shoulder_pitch_03
     // (12, 5, false),  // left_shoulder_roll_03
     // (13, 9, false),  // left_shoulder_yaw_02
@@ -69,22 +69,22 @@ pub const ACTUATOR_KP_KD: [(usize, f32, f32, f32); 20] = [
 // absolute position when providing the input to the neural network, and add
 // it back to the output.
 // Units are in degrees.
-pub const NN_HOME_POSITION: [(usize, f32); 20] = [
-    (0, 0.23f32.to_degrees()), // left_hip_pitch_04
+pub const NN_HOME_POSITION: [(usize, f32); 10] = [
+    (0, 13.18), // left_hip_pitch_04
     (1, 0.0), // left_hip_roll_03
     (2, 0.0), // left_hip_yaw_03
-    (3, 0.441f32.to_degrees()), // left_knee_04
-    (4, -0.195f32.to_degrees()), // left_ankle_02
-    (5, -0.23f32.to_degrees()), // right_hip_pitch_04
+    (3, 25.27), // left_knee_04
+    (4, -11.17), // left_ankle_02
+    (5, -13.18), // right_hip_pitch_04
     (6, 0.0), // right_hip_roll_03
     (7, 0.0), // right_hip_yaw_03
-    (8, -0.441f32.to_degrees()), // right_knee_04
-    (9, 0.195f32.to_degrees()), // right_ankle_02
+    (8, -25.27), // right_knee_04
+    (9, 11.17), // right_ankle_02
 ];
 
 // The commented-out values are the original URDF joint limits - I am
 // adding software limits here to avoid some hardware failures.
-pub const NN_JOINT_LIMITS: [(usize, f32, f32); 20] = [
+pub const NN_JOINT_LIMITS: [(usize, f32, f32); 10] = [
     // (0, -90.0, 90.0), // left_hip_pitch_04
     // (1, 0.0, 180.0),  // left_shoulder_pitch_03
     // (2, -90.0, 90.0), // right_hip_pitch_04

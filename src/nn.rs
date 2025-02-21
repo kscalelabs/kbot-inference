@@ -88,7 +88,7 @@ impl NeuralNetworkRunner {
         actuators: &Option<Actuator>,
         actuator_ids: &Vec<u8>,
         slowdown_factor: f32,
-    ) -> Result<[f32; 40], Box<dyn std::error::Error>> {
+    ) -> Result<[f32; 20], Box<dyn std::error::Error>> {
         if let Some(actuators) = actuators {
             let state = actuators.get_actuators_state(actuator_ids.to_vec()).await?;
 
@@ -383,18 +383,23 @@ impl NeuralNetworkRunner {
         
         // Extract actions and update internal buffers
         let actions = outputs[0].try_extract_tensor::<f32>()?;
-        let actions_array = actions.into_shape_with_order(ndarray::Ix2(1, self.get_action_size()))?;
+        let actions_array = actions.into_shape_with_order(ndarray::Ix2(1, Self::get_action_size()))?;
         
-        // Update prev_actions from the model output named "actions"
-        if let Some(raw_actions) = outputs.iter().find(|o| o.name == "actions") {
-            let actions = raw_actions.try_extract_tensor::<f32>()?;
-            self.prev_actions = actions.into_shape_with_order(ndarray::Ix2(1, self.get_action_size()))?;
-        }
-
-        // Update history buffer from the model output named "x.3"
-        if let Some(new_buffer) = outputs.iter().find(|o| o.name == "x.3") {
-            let buffer = new_buffer.try_extract_tensor::<f32>()?;
-            self.buffer = buffer.into_shape_with_order(ndarray::Ix2(1, 570))?;
+        // Update prev_actions and buffer from the model output
+        for (name, output) in outputs.iter() {
+            match name {
+                "actions" => {
+                    let actions = output.try_extract_tensor::<f32>()?;
+                    let temp_actions_array = actions.into_shape_with_order(ndarray::Ix2(1, Self::get_action_size()))?;
+                    self.prev_actions = temp_actions_array.to_owned();
+                }
+                "x.3" => {
+                    let buffer = output.try_extract_tensor::<f32>()?;
+                    let buffer_array = buffer.into_shape_with_order(ndarray::Ix2(1, 570))?;
+                    self.buffer = buffer_array.to_owned();
+                }
+                _ => {}
+            }
         }
 
         let inference_time = inference_start.elapsed();
