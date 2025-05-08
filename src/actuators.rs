@@ -334,17 +334,14 @@ impl Actuator {
         let max_angle_change = 0.01f32; // Percent
         let max_velocity = 0.01f32.to_radians();
         let command_rate_hz = 50.0f32; // Hz
-        vec![
-
-            (
-                11,
-                ActuatorConfiguration {
-                    actuator_type: ActuatorType::RobStride03,
-                    max_angle_change: Some(max_angle_change),
-                    max_velocity: Some(max_velocity),
-                    command_rate_hz: Some(command_rate_hz),
-                },
-            )
-        ]
+        vec![(
+            11,
+            ActuatorConfiguration {
+                actuator_type: ActuatorType::RobStride03,
+                max_angle_change: Some(max_angle_change),
+                max_velocity: Some(max_velocity),
+                command_rate_hz: Some(command_rate_hz),
+            },
+        )]
     }
 }
