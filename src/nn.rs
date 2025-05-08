@@ -86,14 +86,6 @@ impl NeuralNetworkRunner {
                 }
             }
 
-            // Subtract off the home position
-            for (nn_idx, home_pos) in NN_HOME_POSITION.iter() {
-                let pos = positions.get_mut(*nn_idx).ok_or_else(|| {
-                    format!("Missing position for neural network index {}", nn_idx)
-                })?;
-                *pos -= *home_pos as f64;
-            }
-
             // Scale positions.
             // let scale = 0.5;
             // positions = positions
@@ -193,13 +185,7 @@ impl NeuralNetworkRunner {
         // Apply scaling factor.
         let actions = actions * 0.5;
 
-        // Add back the home position
         let mut final_actions = actions.to_owned();
-
-        // Add back the home position.
-        for (nn_idx, home_pos) in NN_HOME_POSITION.iter() {
-            final_actions[[0, *nn_idx]] += home_pos;
-        }
 
         // Clip to the desired actuator limits.
         for (nn_idx, lower_limit, upper_limit) in NN_JOINT_LIMITS.iter() {
