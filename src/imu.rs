@@ -1,9 +1,8 @@
 use chrono::Local;
 use eyre::Result;
-use imu::{HiwonderOutput, HiwonderReader, ImuFrequency, ImuReader, Quaternion, Vector3};
+use imu::{HiwonderOutput, HiwonderReader, ImuData, ImuFrequency, ImuReader};
 use serde_json;
 use std::env;
-use std::fs;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 use tokio::task::JoinHandle;
@@ -49,7 +48,7 @@ impl Default for ImuValues {
 const IMU_WRITE_TIMEOUT: Duration = Duration::from_secs(4);
 
 pub struct IMU {
-    data: Arc<RwLock<ImuValues>>,
+    data: Arc<RwLock<ImuData>>,
     _background_task: JoinHandle<()>,
 }
 
@@ -68,7 +67,7 @@ impl IMU {
             );
 
             match HiwonderReader::new(interface, baud_rate, Duration::from_millis(100), true) {
-                Ok(mut imu) => {
+                Ok(imu) => {
                     info!(
                         "Successfully created IMU reader for interface: {}",
                         interface
@@ -173,36 +172,19 @@ impl IMU {
             }
         }
 
-        let mut imu_reader = configured_imu_reader.ok_or_else(|| {
+        let imu_reader = configured_imu_reader.ok_or_else(|| {
             eyre::eyre!("Failed to initialize and configure IMU on any provided interface")
         })?;
 
-        let data = Arc::new(RwLock::new(ImuValues::default()));
+        let data = Arc::new(RwLock::new(ImuData::default()));
         let data_clone = data.clone();
 
         let background_task = tokio::spawn(async move {
             loop {
                 match imu_reader.get_data() {
                     Ok(raw_data) => {
-                        let angles = raw_data.euler.unwrap_or_default();
-                        let velocities = raw_data.gyroscope.unwrap_or_default();
-                        let accelerations = raw_data.accelerometer.unwrap_or_default();
-                        let quaternion = raw_data.quaternion.unwrap_or_default();
-
                         if let Ok(mut imu_data_lock) = data_clone.write() {
-                            imu_data_lock.accel_x = accelerations.x as f64;
-                            imu_data_lock.accel_y = accelerations.y as f64;
-                            imu_data_lock.accel_z = accelerations.z as f64;
-                            imu_data_lock.gyro_x = velocities.x as f64;
-                            imu_data_lock.gyro_y = velocities.y as f64;
-                            imu_data_lock.gyro_z = velocities.z as f64;
-                            imu_data_lock.roll = angles.x as f64;
-                            imu_data_lock.pitch = angles.y as f64;
-                            imu_data_lock.yaw = angles.z as f64;
-                            imu_data_lock.quaternion_w = quaternion.w as f64;
-                            imu_data_lock.quaternion_x = quaternion.x as f64;
-                            imu_data_lock.quaternion_y = quaternion.y as f64;
-                            imu_data_lock.quaternion_z = quaternion.z as f64;
+                            *imu_data_lock = raw_data;
                         } else {
                             error!(
                                 "IMU background task: Failed to acquire write lock for IMU data"
@@ -224,7 +206,7 @@ impl IMU {
         })
     }
 
-    pub async fn get_values(&self) -> Result<ImuValues> {
+    pub async fn get_values(&self) -> Result<ImuData> {
         self.data
             .read()
             .map_err(|e| eyre::eyre!("Lock error: {}", e))

@@ -88,15 +88,15 @@ async fn run_sensor_logging(args: Args) -> Result<(), Box<dyn std::error::Error>
                     imu_file,
                     "{:.6},{:.6},{:.6},{:.6},{:.6},{:.6},{:.6},{:.6},{:.6},{:.6}",
                     now,
-                    imu_values.accel_x,
-                    imu_values.accel_y,
-                    imu_values.accel_z,
-                    imu_values.gyro_x,
-                    imu_values.gyro_y,
-                    imu_values.gyro_z,
-                    imu_values.roll,
-                    imu_values.pitch,
-                    imu_values.yaw
+                    imu_values.accelerometer.unwrap_or_default().x,
+                    imu_values.accelerometer.unwrap_or_default().y,
+                    imu_values.accelerometer.unwrap_or_default().z,
+                    imu_values.gyroscope.unwrap_or_default().x,
+                    imu_values.gyroscope.unwrap_or_default().y,
+                    imu_values.gyroscope.unwrap_or_default().z,
+                    imu_values.euler.unwrap_or_default().x,
+                    imu_values.euler.unwrap_or_default().y,
+                    imu_values.euler.unwrap_or_default().z
                 )?;
             }
         }

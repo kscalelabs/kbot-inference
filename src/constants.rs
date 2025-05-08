@@ -1,27 +1,25 @@
-// Mapping from the neural network index to the actuator ID. This also includes
-// a flag indicating whether or not the real actuator orientation is flipped
-// relative to the URDF model.
-pub const ACTUATOR_ID_MAP: [(u8, usize, bool); 20] = [
-    (11, 1, false),  // left_shoulder_pitch_03
-    (12, 5, false),  // left_shoulder_roll_03
-    (13, 9, false),  // left_shoulder_yaw_02
-    (14, 13, false), // left_elbow_02
-    (15, 17, false), // left_wrist_02
-    (21, 3, false),  // right_shoulder_pitch_03
-    (22, 7, false),  // right_shoulder_roll_03
-    (23, 11, false), // right_shoulder_yaw_02
-    (24, 15, false), // right_elbow_02s
-    (25, 19, false), // right_wrist_02
-    (31, 0, false),  // left_hip_pitch_04
-    (32, 4, false),  // left_hip_roll_03
-    (33, 8, false),  // left_hip_yaw_03
-    (34, 12, false), // left_knee_04
-    (35, 16, false), // left_ankle_02
-    (41, 2, false),  // right_hip_pitch_04
-    (42, 6, false),  // right_hip_roll_03
-    (43, 10, false), // right_hip_yaw_03
-    (44, 14, false), // right_knee_04
-    (45, 18, true),  // right_ankle_02
+// Mapping from the actuator ID to the neural network index.
+pub const ACTUATOR_ID_MAP: [(u8, usize); 20] = [
+    (11, 1),  // left_shoulder_pitch_03
+    (12, 5),  // left_shoulder_roll_03
+    (13, 9),  // left_shoulder_yaw_02
+    (14, 13), // left_elbow_02
+    (15, 17), // left_wrist_02
+    (21, 3),  // right_shoulder_pitch_03
+    (22, 7),  // right_shoulder_roll_03
+    (23, 11), // right_shoulder_yaw_02
+    (24, 15), // right_elbow_02s
+    (25, 19), // right_wrist_02
+    (31, 0),  // left_hip_pitch_04
+    (32, 4),  // left_hip_roll_03
+    (33, 8),  // left_hip_yaw_03
+    (34, 12), // left_knee_04
+    (35, 16), // left_ankle_02
+    (41, 2),  // right_hip_pitch_04
+    (42, 6),  // right_hip_roll_03
+    (43, 10), // right_hip_yaw_03
+    (44, 14), // right_knee_04
+    (45, 18), // right_ankle_02
 ];
 
 const KP_02: f32 = 20.0;

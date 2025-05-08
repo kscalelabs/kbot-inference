@@ -24,7 +24,7 @@ impl NeuralNetworkRunner {
 
         // Populate the last command vector.
         let mut start_commands = vec![];
-        for (actuator_id, _, _) in ACTUATOR_ID_MAP.iter() {
+        for (actuator_id, _) in ACTUATOR_ID_MAP.iter() {
             start_commands.push(ActuatorCommand {
                 actuator_id: *actuator_id as u32,
                 position: Some(0.0),
@@ -65,8 +65,8 @@ impl NeuralNetworkRunner {
                 let state = state.iter().find(|s| s.actuator_id == *actuator_id as u32);
                 let nn_index = ACTUATOR_ID_MAP
                     .iter()
-                    .find(|(id, _, _)| *id == *actuator_id)
-                    .map(|(_, nn_idx, _)| *nn_idx);
+                    .find(|(id, _)| *id == *actuator_id)
+                    .map(|(_, nn_idx)| *nn_idx);
 
                 if let Some(nn_index) = nn_index {
                     if let Some(state) = state {
@@ -170,8 +170,8 @@ impl NeuralNetworkRunner {
             // let wz = imu_values.gyro_z as f32 * std::f32::consts::PI / 180.0;
 
             // Gravity vector.
-            let gravity =
-                Self::euler_angles_to_gravity(imu_values.roll as f32, imu_values.pitch as f32)?;
+            let euler = imu_values.euler.unwrap_or_default();
+            let gravity = Self::euler_angles_to_gravity(euler.x as f32, euler.y as f32)?;
             let gx = gravity[0];
             let gy = gravity[1];
             let gz = gravity[2];
@@ -210,15 +210,8 @@ impl NeuralNetworkRunner {
         // Pair the neural network action ID with the actuator ID
         let commands: Vec<ActuatorCommand> = ACTUATOR_ID_MAP
             .iter()
-            .map(|(actuator_id, nn_idx, is_inverted)| {
+            .map(|(actuator_id, nn_idx)| {
                 let actuator_action = final_actions[[0, *nn_idx]];
-
-                // Invert the actuator action to go from URDF space to actuator space if needed.
-                let actuator_action = if *is_inverted {
-                    -actuator_action
-                } else {
-                    actuator_action
-                };
 
                 ActuatorCommand {
                     actuator_id: *actuator_id as u32,
