@@ -9,6 +9,7 @@
 //   make slowdown-dry-run
 
 use clap::Parser;
+use kbot::constants::HOME_POSITION;
 use kbot::{
     actuators::ActuatorCommand, initialize_hardware, initialize_logging, nn::NeuralNetworkRunner,
 };
@@ -131,7 +132,13 @@ async fn run_model(args: Args) -> Result<(), Box<dyn std::error::Error>> {
     // First, we slowly move the actuators to the home position, then sleep for 5 seconds.
     if args.torque_enabled && !args.dry_run {
         tracing::info!("Moving to home position");
-        let home_array = ndarray::Array2::zeros((1, NeuralNetworkRunner::get_action_size()));
+        let home_array = ndarray::Array2::from_shape_vec(
+            (1, HOME_POSITION.len()),
+            HOME_POSITION
+                .iter()
+                .map(|(_, pos)| *pos * std::f32::consts::PI / 180.0)
+                .collect(),
+        )?;
         let home_commands = NeuralNetworkRunner::update_commands(home_array).await?;
         NeuralNetworkRunner::take_action_slowed(
             prev_commands.clone(),
