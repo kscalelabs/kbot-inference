@@ -21,5 +21,6 @@ csv = "1.3"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 chrono = "0.4"
-hiwonder = "=0.2.1"
-robstride = "0.3.0"
+imu = "0.7.3"
+hexmove = "0.2.2"
+robstride = "0.3.5"
