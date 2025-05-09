@@ -334,14 +334,188 @@ impl Actuator {
         let max_angle_change = 0.01f32; // Percent
         let max_velocity = 0.01f32.to_radians();
         let command_rate_hz = 50.0f32; // Hz
-        vec![(
-            11,
-            ActuatorConfiguration {
-                actuator_type: ActuatorType::RobStride03,
-                max_angle_change: Some(max_angle_change),
-                max_velocity: Some(max_velocity),
-                command_rate_hz: Some(command_rate_hz),
-            },
-        )]
+
+        vec![
+            (
+                11, // left_shoulder_pitch_03
+                ActuatorConfiguration {
+                    actuator_type: ActuatorType::RobStride03,
+                    max_angle_change: Some(max_angle_change),
+                    max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(command_rate_hz),
+                },
+            ),
+            (
+                12, // left_shoulder_roll_03
+                ActuatorConfiguration {
+                    actuator_type: ActuatorType::RobStride03,
+                    max_angle_change: Some(max_angle_change),
+                    max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(command_rate_hz),
+                },
+            ),
+            (
+                13, // left_shoulder_yaw_02
+                ActuatorConfiguration {
+                    actuator_type: ActuatorType::RobStride02,
+                    max_angle_change: Some(max_angle_change),
+                    max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(command_rate_hz),
+                },
+            ),
+            (
+                14, // left_elbow_02
+                ActuatorConfiguration {
+                    actuator_type: ActuatorType::RobStride02,
+                    max_angle_change: Some(max_angle_change),
+                    max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(command_rate_hz),
+                },
+            ),
+            (
+                15, // left_wrist_00
+                ActuatorConfiguration {
+                    actuator_type: ActuatorType::RobStride00,
+                    max_angle_change: Some(max_angle_change),
+                    max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(command_rate_hz),
+                },
+            ),
+            (
+                21, // right_shoulder_pitch_03
+                ActuatorConfiguration {
+                    actuator_type: ActuatorType::RobStride03,
+                    max_angle_change: Some(max_angle_change),
+                    max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(command_rate_hz),
+                },
+            ),
+            (
+                22, // right_shoulder_roll_03
+                ActuatorConfiguration {
+                    actuator_type: ActuatorType::RobStride03,
+                    max_angle_change: Some(max_angle_change),
+                    max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(command_rate_hz),
+                },
+            ),
+            (
+                23, // right_shoulder_yaw_02
+                ActuatorConfiguration {
+                    actuator_type: ActuatorType::RobStride02,
+                    max_angle_change: Some(max_angle_change),
+                    max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(command_rate_hz),
+                },
+            ),
+            (
+                24, // right_elbow_02
+                ActuatorConfiguration {
+                    actuator_type: ActuatorType::RobStride02,
+                    max_angle_change: Some(max_angle_change),
+                    max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(command_rate_hz),
+                },
+            ),
+            (
+                25, // right_wrist_00
+                ActuatorConfiguration {
+                    actuator_type: ActuatorType::RobStride00,
+                    max_angle_change: Some(max_angle_change),
+                    max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(command_rate_hz),
+                },
+            ),
+            (
+                31, // left_hip_pitch_04
+                ActuatorConfiguration {
+                    actuator_type: ActuatorType::RobStride04,
+                    max_angle_change: Some(max_angle_change),
+                    max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(command_rate_hz),
+                },
+            ),
+            (
+                32, // left_hip_roll_03
+                ActuatorConfiguration {
+                    actuator_type: ActuatorType::RobStride03,
+                    max_angle_change: Some(max_angle_change),
+                    max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(command_rate_hz),
+                },
+            ),
+            (
+                33, // left_hip_yaw_03
+                ActuatorConfiguration {
+                    actuator_type: ActuatorType::RobStride03,
+                    max_angle_change: Some(max_angle_change),
+                    max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(command_rate_hz),
+                },
+            ),
+            (
+                34, // left_knee_04
+                ActuatorConfiguration {
+                    actuator_type: ActuatorType::RobStride04,
+                    max_angle_change: Some(max_angle_change),
+                    max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(command_rate_hz),
+                },
+            ),
+            (
+                35, // left_ankle_02
+                ActuatorConfiguration {
+                    actuator_type: ActuatorType::RobStride02,
+                    max_angle_change: Some(max_angle_change),
+                    max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(command_rate_hz),
+                },
+            ),
+            (
+                41, // right_hip_pitch_04
+                ActuatorConfiguration {
+                    actuator_type: ActuatorType::RobStride04,
+                    max_angle_change: Some(max_angle_change),
+                    max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(command_rate_hz),
+                },
+            ),
+            (
+                42, // right_hip_roll_03
+                ActuatorConfiguration {
+                    actuator_type: ActuatorType::RobStride03,
+                    max_angle_change: Some(max_angle_change),
+                    max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(command_rate_hz),
+                },
+            ),
+            (
+                43, // right_hip_yaw_03
+                ActuatorConfiguration {
+                    actuator_type: ActuatorType::RobStride03,
+                    max_angle_change: Some(max_angle_change),
+                    max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(command_rate_hz),
+                },
+            ),
+            (
+                44, // right_knee_04
+                ActuatorConfiguration {
+                    actuator_type: ActuatorType::RobStride04,
+                    max_angle_change: Some(max_angle_change),
+                    max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(command_rate_hz),
+                },
+            ),
+            (
+                45, // right_ankle_02
+                ActuatorConfiguration {
+                    actuator_type: ActuatorType::RobStride02,
+                    max_angle_change: Some(max_angle_change),
+                    max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(command_rate_hz),
+                },
+            ),
+        ]
     }
 }
