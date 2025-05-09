@@ -167,7 +167,7 @@ impl NeuralNetworkRunner {
         let mut final_actions = actions.to_owned();
 
         // Clip to the desired actuator limits.
-        for (nn_idx, lower_limit, upper_limit) in NN_JOINT_LIMITS.iter() {
+        for (nn_idx, lower_limit, upper_limit) in NN_JOINT_LIMITS_DEGREES.iter() {
             final_actions[[0, *nn_idx]] =
                 final_actions[[0, *nn_idx]].clamp(*lower_limit, *upper_limit);
         }

@@ -89,32 +89,25 @@ pub const HOME_POSITION: [(usize, f32); 20] = [
 
 // The commented-out values are the original URDF joint limits - I am
 // adding software limits here to avoid some hardware failures.
-pub const NN_JOINT_LIMITS: [(usize, f32, f32); 20] = [
-    (0, -90.0, 90.0), // left_hip_pitch_04
-    (1, 0.0, 180.0),  // left_shoulder_pitch_03
-    (2, -90.0, 90.0), // right_hip_pitch_04
-    (3, -180.0, 0.0), // right_shoulder_pitch_03
-    // Software limit to avoid some hardware issues.
-    // (4, -182.5, 20.0),   // left_hip_roll_03
-    (4, -20.0, 20.0), // left_hip_roll_03
-    // Software limit to avoid some hardware issues.
-    // (5, -208.0, 27.5), // left_shoulder_roll_03
-    (5, -90.0, 27.5), // left_shoulder_roll_03
-    // Software limit to avoid some hardware issues.
-    // (6, -20.0, 182.5),   // right_hip_roll_03
-    (6, -20.0, 20.0), // right_hip_roll_03
-    // (7, -27.5, 208.0),   // right_shoulder_roll_03
-    (7, -27.5, 90.0),    // right_shoulder_roll_03
-    (8, -90.0, 90.0),    // left_hip_yaw_03
-    (9, -90.0, 90.0),    // left_shoulder_yaw_02
-    (10, -90.0, 90.0),   // right_hip_yaw_03
-    (11, -90.0, 90.0),   // right_shoulder_yaw_02
-    (12, 0.0, 120.0),    // left_knee_04
-    (13, -145.0, 0.0),   // left_elbow_02
-    (14, -120.0, 0.0),   // right_knee_04
-    (15, 0.0, 145.0),    // right_elbow_02
-    (16, -40.0, 40.0),   // left_ankle_02
-    (17, -180.0, 180.0), // left_wrist_02
-    (18, -40.0, 40.0),   // right_ankle_02
-    (19, -180.0, 180.0), // right_wrist_02
+pub const NN_JOINT_LIMITS_DEGREES: [(usize, f32, f32); 20] = [
+    (0, -180.00001984784282, 79.99997699027486), // right_shoulder_pitch_03
+    (1, -95.00001206679983, 20.000008571513593), // right_shoulder_roll_03
+    (2, -95.00001206679983, 95.00001206679983),  // right_shoulder_yaw_02
+    (3, 0.0, 142.00002648027882),                // right_elbow_02
+    (4, -99.99998556178845, 99.99998556178845),  // right_wrist_00
+    (5, -79.99997699027486, 180.00001984784282), // left_shoulder_pitch_03
+    (6, -20.000008571513593, 95.00001206679983), // left_shoulder_roll_03
+    (7, -95.00001206679983, 95.00001206679983),  // left_shoulder_yaw_02
+    (8, -142.00002648027882, 0.0),               // left_elbow_02
+    (9, -99.99998556178845, 99.99998556178845),  // left_wrist_00
+    (10, -126.99999140375387, 60.00002571454079), // right_hip_pitch_04
+    (11, -129.99999841905884, 12.000028061219961), // right_hip_roll_03
+    (12, -89.99998127603166, 89.99998127603166), // right_hip_yaw_03
+    (13, -154.99998048556108, 0.0),              // right_knee_04
+    (14, -13.000011301061788, 71.99999647998123), // right_ankle_02
+    (15, -60.00002571454079, 126.99999140375387), // left_hip_pitch_04
+    (16, -12.000028061219961, 129.99999841905884), // left_hip_roll_03
+    (17, -89.99998127603166, 89.99998127603166), // left_hip_yaw_03
+    (18, 0.0, 154.99998048556108),               // left_knee_04
+    (19, -71.99999647998123, 13.000011301061788), // left_ankle_02
 ];
