@@ -1,10 +1,10 @@
-// This script gradually moves all actuators on the K-Bot robot to their zero positions.
+// This script gradually moves all actuators on the K-Bot robot to their home positions.
 //
 // Run with:
-//   cargo run --bin move_to_zero [--dry-run] [--torque-enabled] [--duration <seconds>]
+//   cargo run --bin move_to_home [--dry-run] [--torque-enabled] [--duration <seconds>]
 //
 // Or using make:
-//   make move-to-zero
+//   make move-to-home
 
 use clap::Parser;
 use kbot::{
