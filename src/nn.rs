@@ -121,22 +121,32 @@ impl NeuralNetworkRunner {
 
             let acc = match imu_values.accelerometer {
                 Some(acc) => acc,
-                None => Vector3::default(),
+                None => return Err(eyre!("No accelerometer values").into()),
             };
 
             let gyro = match imu_values.gyroscope {
                 Some(gyro) => gyro,
-                None => Vector3::default(),
+                None => return Err(eyre!("No gyroscope values").into()),
             };
-            
+
             let quat = match imu_values.quaternion {
                 Some(quat) => quat,
-                None => Quaternion::default(),
+                None => return Err(eyre!("No quaternion values").into()),
             };
 
             let projected_gravity = quat.rotate_vector(Vector3::new(0.0, 0.0, -9.81), true);
 
-            Ok([projected_gravity.x, projected_gravity.y, projected_gravity.z, acc.x, acc.y, acc.z, gyro.x, gyro.y, gyro.z])
+            Ok([
+                projected_gravity.x,
+                projected_gravity.y,
+                projected_gravity.z,
+                acc.x,
+                acc.y,
+                acc.z,
+                gyro.x,
+                gyro.y,
+                gyro.z,
+            ])
         } else {
             // Return zeros in dry run mode
             Ok([0.0; 9])
