@@ -22,9 +22,9 @@ struct Args {
     #[arg(long, default_value = "true")]
     torque_enabled: bool,
 
-    /// Slowdown factor for moving to the initial home position.
+    /// Slowdown factor for moving
     #[arg(long, value_name = "FACTOR", default_value = "50.0")]
-    home_slowdown_factor: f64,
+    slowdown_factor: f64,
 
     /// Duration of the sinusoid.
     #[arg(long, value_name = "DURATION", default_value = "5.0")]
@@ -72,7 +72,7 @@ async fn get_start_commands(
 async fn go_to_zero(
     actuators: &Option<Actuator>,
     kbot_actuator_ids: &Vec<u8>,
-    home_slowdown_factor: f64,
+    slowdown_factor: f64,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let start_commands = get_start_commands(actuators, kbot_actuator_ids).await?;
     let home_array = ndarray::Array2::zeros((1, NeuralNetworkRunner::get_action_size()));
@@ -82,8 +82,8 @@ async fn go_to_zero(
     NeuralNetworkRunner::take_action_slowed(
         start_commands.clone(),
         home_commands.clone(),
-        Duration::from_millis((home_slowdown_factor * 1000.0 / target_loop_rate as f64) as u64),
-        home_slowdown_factor as usize,
+        Duration::from_millis((slowdown_factor * 1000.0 / target_loop_rate as f64) as u64),
+        slowdown_factor as usize,
         &actuators,
     )
     .await?;
@@ -96,7 +96,7 @@ async fn move_to_zero(args: Args) -> Result<(), Box<dyn std::error::Error>> {
     let target_loop_rate = 50.0;
     let desired_loop_time = Duration::from_secs_f32(1.0 / target_loop_rate);
 
-    go_to_zero(&actuators, &kbot_actuator_ids, args.home_slowdown_factor).await?;
+    go_to_zero(&actuators, &kbot_actuator_ids, args.slowdown_factor).await?;
     let num_steps_per_actuator = (args.duration * target_loop_rate) as u64;
 
     for i in 0..kbot_actuator_ids.len() {
@@ -122,9 +122,9 @@ async fn move_to_zero(args: Args) -> Result<(), Box<dyn std::error::Error>> {
                 start_commands.clone(),
                 target_commands.clone(),
                 Duration::from_millis(
-                    (args.home_slowdown_factor * 1000.0 / target_loop_rate as f64) as u64,
+                    (args.slowdown_factor * 1000.0 / target_loop_rate as f64) as u64,
                 ),
-                args.home_slowdown_factor as usize,
+                args.slowdown_factor as usize,
                 &actuators,
             )
             .await?;
@@ -145,7 +145,7 @@ async fn move_to_zero(args: Args) -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    go_to_zero(&actuators, &kbot_actuator_ids, args.home_slowdown_factor).await?;
+    go_to_zero(&actuators, &kbot_actuator_ids, args.slowdown_factor).await?;
 
     Ok(())
 }
