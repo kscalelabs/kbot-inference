@@ -4,6 +4,7 @@ use crate::{
     imu::IMU,
 };
 use eyre::eyre;
+use imu::{Quaternion, Vector3};
 use ndarray;
 use ort::{session::builder::GraphOptimizationLevel, session::Session, Error as OrtError};
 use std::time::Duration;
@@ -116,12 +117,26 @@ impl NeuralNetworkRunner {
 
     pub async fn get_imu_values(imu: &Option<IMU>) -> Result<[f32; 9], Box<dyn std::error::Error>> {
         if let Some(imu) = imu {
-            // let imu_values = imu.get_values().await?;
-            // let gravity: [f32;3] = imu_values.gravity;
-            // let accelerometer: [f32;3] = imu_values.accelerometer;
-            // let gyroscope: [f32;3] = imu_values.gyroscope;
-            // Ok([gravity[0], gravity[1], gravity[2], accelerometer[0], accelerometer[1], accelerometer[2], gyroscope[0], gyroscope[1], gyroscope[2]])
-            Ok([0.0; 9])
+            let imu_values = imu.get_values().await?;
+
+            let acc = match imu_values.accelerometer {
+                Some(acc) => acc,
+                None => Vector3::default(),
+            };
+
+            let gyro = match imu_values.gyroscope {
+                Some(gyro) => gyro,
+                None => Vector3::default(),
+            };
+            
+            let quat = match imu_values.quaternion {
+                Some(quat) => quat,
+                None => Quaternion::default(),
+            };
+
+            let projected_gravity = quat.rotate_vector(Vector3::new(0.0, 0.0, -9.81), true);
+
+            Ok([projected_gravity.x, projected_gravity.y, projected_gravity.z, acc.x, acc.y, acc.z, gyro.x, gyro.y, gyro.z])
         } else {
             // Return zeros in dry run mode
             Ok([0.0; 9])
@@ -227,20 +242,9 @@ impl NeuralNetworkRunner {
             .assign(&ndarray::Array1::from_vec(dof_values.to_vec()));
 
         let imu_values = imu_values?;
-        // let gvec = imu_values.gravity;
-        // self.obs
-        //     .slice_mut(ndarray::s![40..43])
-        //     .assign(&ndarray::Array1::from_vec(gvec.to_vec()));
-
-        // let acc = imu_values.accelerometer;
-        // self.obs
-        //     .slice_mut(ndarray::s![43..46])
-        //     .assign(&ndarray::Array1::from_vec(acc.to_vec()));
-
-        // let gyro = imu_values.gyroscope;
-        // self.obs
-        //     .slice_mut(ndarray::s![46..49])
-        //     .assign(&ndarray::Array1::from_vec(gyro.to_vec()));
+        self.obs
+            .slice_mut(ndarray::s![40..49])
+            .assign(&ndarray::Array1::from_vec(imu_values.to_vec()));
 
         Ok((self.obs.clone(), sensor_time))
     }
