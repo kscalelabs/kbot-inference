@@ -26,11 +26,11 @@ struct Args {
     torque_enabled: bool,
 
     /// Slowdown factor for moving to the initial home position.
-    #[arg(long, value_name = "FACTOR", default_value = "50.0")]
+    #[arg(long, value_name = "FACTOR", default_value = "100.0")]
     home_slowdown_factor: f64,
 }
 
-async fn move_to_upper_limit(args: Args) -> Result<(), Box<dyn std::error::Error>> {
+async fn move_to_limits(args: Args) -> Result<(), Box<dyn std::error::Error>> {
     let (_, actuators, kbot_actuator_ids) =
         initialize_hardware(args.dry_run, args.torque_enabled).await?;
 
@@ -80,40 +80,7 @@ async fn move_to_upper_limit(args: Args) -> Result<(), Box<dyn std::error::Error
     )
     .await?;
 
-    Ok(())
-}
-
-async fn move_to_lower_limit(args: Args) -> Result<(), Box<dyn std::error::Error>> {
-    let (_, actuators, kbot_actuator_ids) =
-        initialize_hardware(args.dry_run, args.torque_enabled).await?;
-
     tracing::info!("Starting gradual movement to lower limit positions...");
-
-    // Start commands (current positions)
-    let mut start_commands = vec![];
-    if let Some(actuators) = &actuators {
-        let actuator_states = actuators
-            .get_actuators_state(kbot_actuator_ids.clone())
-            .await?;
-        for state in actuator_states {
-            start_commands.push(ActuatorCommand {
-                actuator_id: state.actuator_id as u32,
-                position: Some(state.position.unwrap_or(0.0)),
-                velocity: None,
-                torque: None,
-            });
-        }
-    } else {
-        for id in kbot_actuator_ids.clone() {
-            start_commands.push(ActuatorCommand {
-                actuator_id: id as u32,
-                position: Some(0.0),
-                velocity: None,
-                torque: None,
-            });
-        }
-    }
-
     // Target positions: lower joint limits in radians, ordered by NN index
     let mut nn_lower_limit_target_positions_rad = Array2::<f32>::zeros((1, 20)); // 20 is the number of NN outputs/joints
     for (nn_index, lower_deg, _upper_deg) in NN_JOINT_LIMITS_DEGREES.iter() {
@@ -133,6 +100,22 @@ async fn move_to_lower_limit(args: Args) -> Result<(), Box<dyn std::error::Error
     )
     .await?;
 
+    tracing::info!("Finished moving to limits");
+    tracing::info!("Moving to zero position...");
+
+    let home_array = ndarray::Array2::zeros((1, NeuralNetworkRunner::get_action_size()));
+    let home_commands = NeuralNetworkRunner::update_commands(home_array).await?;
+    let target_loop_rate = 50.0;
+
+    NeuralNetworkRunner::take_action_slowed(
+        start_commands.clone(),
+        home_commands.clone(),
+        Duration::from_millis((args.home_slowdown_factor * 1000.0 / target_loop_rate) as u64),
+        args.home_slowdown_factor as usize,
+        &actuators,
+    )
+    .await?;
+
     Ok(())
 }
 
@@ -140,7 +123,6 @@ async fn move_to_lower_limit(args: Args) -> Result<(), Box<dyn std::error::Error
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     initialize_logging().await;
     let args = Args::parse();
-    move_to_lower_limit(args.clone()).await;
-    move_to_upper_limit(args.clone()).await;
+    move_to_limits(args.clone()).await;
     Ok(())
 }
