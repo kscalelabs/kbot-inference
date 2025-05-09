@@ -10,7 +10,8 @@ use std::time::Duration;
 
 pub struct NeuralNetworkRunner {
     model: Session,
-    obs: ndarray::Array2<f32>,
+    obs: ndarray::Array1<f32>,
+    carry: ndarray::Array2<f32>,
 }
 
 impl NeuralNetworkRunner {
@@ -20,7 +21,8 @@ impl NeuralNetworkRunner {
             .with_intra_threads(4)?
             .commit_from_file(model_path)?;
 
-        let obs = ndarray::Array2::<f32>::zeros((1, 66));
+        let obs = ndarray::Array1::<f32>::zeros(49);
+        let carry = ndarray::Array2::<f32>::zeros((5, 128));
 
         // Populate the last command vector.
         let mut start_commands = vec![];
@@ -33,11 +35,11 @@ impl NeuralNetworkRunner {
             });
         }
 
-        Ok(Self { model, obs })
+        Ok(Self { model, obs, carry })
     }
 
     pub fn get_observation_size(&self) -> usize {
-        self.obs.ncols()
+        self.obs.len()
     }
 
     pub fn get_action_size() -> usize {
@@ -86,17 +88,6 @@ impl NeuralNetworkRunner {
                 }
             }
 
-            // Scale positions.
-            // let scale = 0.5;
-            // positions = positions
-            //     .iter()
-            //     .map(|p| p / scale as f64)
-            //     .collect::<Vec<_>>();
-            // velocities = velocities
-            //     .iter()
-            //     .map(|v| v / scale as f64)
-            //     .collect::<Vec<_>>();
-
             // Multiply velocities by slowdown factor
             if slowdown_factor != 1.0 {
                 velocities = velocities
@@ -110,15 +101,11 @@ impl NeuralNetworkRunner {
                 .iter()
                 .map(|p| p * std::f64::consts::PI / 180.0)
                 .collect();
-            velocities = velocities
-                .iter()
-                .map(|v| v * std::f64::consts::PI / 180.0)
-                .collect();
 
-            // Create array and copy positions and velocities into it
+            // Create array and copy positions into it
             let mut result = [0.0; 40];
             result[..20].copy_from_slice(&positions);
-            result[20..].copy_from_slice(&velocities);
+            result[20..40].copy_from_slice(&velocities);
 
             Ok(result.map(|x| x as f32))
         } else {
@@ -127,52 +114,17 @@ impl NeuralNetworkRunner {
         }
     }
 
-    pub fn euler_angles_to_gravity(
-        roll: f32,
-        pitch: f32,
-    ) -> Result<[f32; 3], Box<dyn std::error::Error>> {
-        // Convert roll and pitch to radians
-        let (roll, pitch) = (roll.to_radians(), pitch.to_radians());
-
-        // Calculate trigonometric values
-        let (sr, cr) = roll.sin_cos();
-        let (sp, cp) = pitch.sin_cos();
-
-        // Gravity components
-        let gx = -sp; // X-axis component
-        let gy = sr * cp; // Y-axis component
-        let gz = -cr * cp; // Z-axis component
-
-        // Gravity in IMU frame
-        Ok([gx, gy, gz])
-    }
-
-    pub async fn get_imu_values(imu: &Option<IMU>) -> Result<[f32; 3], Box<dyn std::error::Error>> {
+    pub async fn get_imu_values(imu: &Option<IMU>) -> Result<[f32; 9], Box<dyn std::error::Error>> {
         if let Some(imu) = imu {
-            let imu_values = imu.get_values().await?;
-
-            // // Linear acceleration.
-            // let ax = -imu_values.accel_x as f32;
-            // let ay = -imu_values.accel_y as f32;
-            // let az = -imu_values.accel_z as f32;
-
-            // // Angular velocity.
-            // let wx = imu_values.gyro_x as f32 * std::f32::consts::PI / 180.0;
-            // let wy = imu_values.gyro_y as f32 * std::f32::consts::PI / 180.0;
-            // let wz = imu_values.gyro_z as f32 * std::f32::consts::PI / 180.0;
-
-            // Gravity vector.
-            let euler = imu_values.euler.unwrap_or_default();
-            let gravity = Self::euler_angles_to_gravity(euler.x as f32, euler.y as f32)?;
-            let gx = gravity[0];
-            let gy = gravity[1];
-            let gz = gravity[2];
-
-            // Ok([ax, ay, az, wx, wy, wz, gx, gy, gz])
-            Ok([gx, gy, gz])
+            // let imu_values = imu.get_values().await?;
+            // let gravity: [f32;3] = imu_values.gravity;
+            // let accelerometer: [f32;3] = imu_values.accelerometer;
+            // let gyroscope: [f32;3] = imu_values.gyroscope;
+            // Ok([gravity[0], gravity[1], gravity[2], accelerometer[0], accelerometer[1], accelerometer[2], gyroscope[0], gyroscope[1], gyroscope[2]])
+            Ok([0.0; 9])
         } else {
             // Return zeros in dry run mode
-            Ok([0.0; 3])
+            Ok([0.0; 9])
         }
     }
 
@@ -181,9 +133,6 @@ impl NeuralNetworkRunner {
     ) -> Result<Vec<ActuatorCommand>, Box<dyn std::error::Error>> {
         // Convert from radians to degrees.
         let actions = actions * 180.0 / std::f32::consts::PI;
-
-        // Apply scaling factor.
-        let actions = actions * 0.5;
 
         let mut final_actions = actions.to_owned();
 
@@ -262,7 +211,7 @@ impl NeuralNetworkRunner {
         actuators: &Option<Actuator>,
         actuator_ids: &Vec<u8>,
         slowdown_factor: f32,
-    ) -> Result<(ndarray::Array2<f32>, Duration), Box<dyn std::error::Error>> {
+    ) -> Result<(ndarray::Array1<f32>, Duration), Box<dyn std::error::Error>> {
         let sensor_start = tokio::time::Instant::now();
         let (targets, imu_values, dof_values) = tokio::join!(
             Self::get_targets(),
@@ -272,39 +221,49 @@ impl NeuralNetworkRunner {
         let sensor_time = sensor_start.elapsed();
 
         // Update observation vector
-        let targets = targets?;
-        self.obs
-            .slice_mut(ndarray::s![0, 0..3])
-            .assign(&ndarray::Array1::from_vec(targets.to_vec()));
-
-        let imu_values = imu_values?;
-        self.obs
-            .slice_mut(ndarray::s![0, 3..6])
-            .assign(&ndarray::Array1::from_vec(imu_values.to_vec()));
-
         let dof_values = dof_values?;
         self.obs
-            .slice_mut(ndarray::s![0, 6..46])
+            .slice_mut(ndarray::s![0..40])
             .assign(&ndarray::Array1::from_vec(dof_values.to_vec()));
+
+        let imu_values = imu_values?;
+        // let gvec = imu_values.gravity;
+        // self.obs
+        //     .slice_mut(ndarray::s![40..43])
+        //     .assign(&ndarray::Array1::from_vec(gvec.to_vec()));
+
+        // let acc = imu_values.accelerometer;
+        // self.obs
+        //     .slice_mut(ndarray::s![43..46])
+        //     .assign(&ndarray::Array1::from_vec(acc.to_vec()));
+
+        // let gyro = imu_values.gyroscope;
+        // self.obs
+        //     .slice_mut(ndarray::s![46..49])
+        //     .assign(&ndarray::Array1::from_vec(gyro.to_vec()));
 
         Ok((self.obs.clone(), sensor_time))
     }
 
     pub fn run_inference(
         &mut self,
-        obs: ndarray::Array2<f32>,
+        obs: ndarray::Array1<f32>,
     ) -> Result<(ndarray::Array2<f32>, Duration), Box<dyn std::error::Error>> {
         let inference_start = tokio::time::Instant::now();
-        let outputs = self.model.run(ort::inputs!["obs" => obs]?)?;
+        let inputs = ort::inputs![
+            "args_tf_0" => obs,
+            "args_tf_1" => self.carry.clone(),
+        ]?;
+        let outputs = self.model.run(inputs)?;
         let actions = outputs[0].try_extract_tensor::<f32>()?;
+        let carry = outputs[1].try_extract_tensor::<f32>()?;
         let inference_time = inference_start.elapsed();
 
         let actions_array = actions.into_shape_with_order(ndarray::Ix2(1, 20))?;
-
-        // Update the observation buffer with the new actions
-        self.obs
-            .slice_mut(ndarray::s![0, 46..66])
-            .assign(&actions_array.slice(ndarray::s![0, ..]));
+        // update carry
+        self.carry
+            .slice_mut(ndarray::s![0..5, 0..128])
+            .assign(&carry);
 
         Ok((actions_array.to_owned(), inference_time))
     }
