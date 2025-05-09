@@ -28,15 +28,15 @@ struct Args {
 
     /// Duration of the sinusoid.
     #[arg(long, value_name = "DURATION", default_value = "5.0")]
-    duration: f64,
+    duration: f32,
 
     /// Frequency of the sinusoid.
     #[arg(long, value_name = "FREQUENCY", default_value = "0.5")]
-    frequency: f64,
+    frequency: f32,
 
     /// Amplitude of the sinusoid.
     #[arg(long, value_name = "AMPLITUDE", default_value = "0.25")]
-    amplitude: f64,
+    amplitude: f32,
 }
 
 async fn get_start_commands(
@@ -72,6 +72,7 @@ async fn get_start_commands(
 async fn go_to_zero(
     actuators: &Option<Actuator>,
     kbot_actuator_ids: &Vec<u8>,
+    home_slowdown_factor: f64,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let start_commands = get_start_commands(actuators, kbot_actuator_ids).await?;
     let home_array = ndarray::Array2::zeros((1, NeuralNetworkRunner::get_action_size()));
@@ -81,8 +82,8 @@ async fn go_to_zero(
     NeuralNetworkRunner::take_action_slowed(
         start_commands.clone(),
         home_commands.clone(),
-        Duration::from_millis((args.home_slowdown_factor * 1000.0 / target_loop_rate) as u64),
-        args.home_slowdown_factor as usize,
+        Duration::from_millis((home_slowdown_factor * 1000.0 / target_loop_rate) as u64),
+        home_slowdown_factor as usize,
         &actuators,
     )
     .await?;
@@ -93,7 +94,7 @@ async fn move_to_zero(args: Args) -> Result<(), Box<dyn std::error::Error>> {
     let (_, actuators, kbot_actuator_ids) =
         initialize_hardware(args.dry_run, args.torque_enabled).await?;
 
-    go_to_zero(&actuators, &kbot_actuator_ids).await?;
+    go_to_zero(&actuators, &kbot_actuator_ids, args.home_slowdown_factor).await?;
 
     for i in 0..kbot_actuator_ids.len() {
         tracing::info!("Moving actuator {} to sinusoid...", i);
@@ -103,7 +104,7 @@ async fn move_to_zero(args: Args) -> Result<(), Box<dyn std::error::Error>> {
             let mut target_commands =
                 ndarray::Array2::zeros((1, NeuralNetworkRunner::get_action_size()));
             target_commands[[0, i]] =
-                args.amplitude * (2.0 * std::f64::consts::PI * args.frequency * t as f64).sin();
+                args.amplitude * (2.0 * std::f32::consts::PI * args.frequency * t as f32).sin();
             let target_commands = NeuralNetworkRunner::update_commands(target_commands).await?;
             let target_loop_rate = 50.0;
             tracing::info!("Moving to target position...");
@@ -118,7 +119,7 @@ async fn move_to_zero(args: Args) -> Result<(), Box<dyn std::error::Error>> {
             )
             .await?;
             let process_time = process_time.elapsed();
-            let desired_loop_time = Duration::from_secs_f64(1.0 / args.frequency);
+            let desired_loop_time = Duration::from_secs_f32(1.0 / args.frequency);
             if process_time < desired_loop_time {
                 let sleep_time = desired_loop_time - process_time;
                 tracing::debug!("Sleeping for {:?} to maintain frequency", sleep_time);
@@ -133,7 +134,7 @@ async fn move_to_zero(args: Args) -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    go_to_zero(&actuators, &kbot_actuator_ids).await?;
+    go_to_zero(&actuators, &kbot_actuator_ids, args.home_slowdown_factor).await?;
 
     Ok(())
 }
