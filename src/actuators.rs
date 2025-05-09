@@ -331,8 +331,8 @@ impl Actuator {
 
     pub fn create_kbot_actuators() -> Vec<(u8, ActuatorConfiguration)> {
         // Load this from the config
-        let max_angle_change = 0.01f32; // Percent
-        let max_velocity = 0.01f32.to_radians();
+        let max_angle_change = 1.0f32; // Percent
+        let max_velocity = 0.1f32.to_radians();
         let command_rate_hz = 50.0f32; // Hz
 
         vec![

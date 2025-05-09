@@ -43,9 +43,9 @@ pub async fn initialize_hardware(
                 if let Err(e) = actuators
                     .configure_actuator(actuators::ConfigureRequest {
                         actuator_id: *id as u32,
-                        kp: Some(kp as f64),
-                        kd: Some(kd as f64),
-                        max_torque: Some(max_torque as f64),
+                        kp: Some(kp as f64 / 20.0),
+                        kd: Some(kd as f64 / 10.0),
+                        max_torque: Some(max_torque as f64 / 10.0),
                         torque_enabled: Some(torque_enabled),
                         zero_position: None,
                         new_actuator_id: None,
