@@ -81,6 +81,30 @@ async fn move_to_limits(args: Args) -> Result<(), Box<dyn std::error::Error>> {
     .await?;
 
     tracing::info!("Starting gradual movement to lower limit positions...");
+
+    let mut start_commands = vec![];
+    if let Some(actuators) = &actuators {
+        let actuator_states = actuators
+            .get_actuators_state(kbot_actuator_ids.clone())
+            .await?;
+        for state in actuator_states {
+            start_commands.push(ActuatorCommand {
+                actuator_id: state.actuator_id as u32,
+                position: Some(state.position.unwrap_or(0.0)),
+                velocity: None,
+                torque: None,
+            });
+        }
+    } else {
+        for id in kbot_actuator_ids.clone() {
+            start_commands.push(ActuatorCommand {
+                actuator_id: id as u32,
+                position: Some(0.0),
+                velocity: None,
+                torque: None,
+            });
+        }
+    }
     // Target positions: lower joint limits in radians, ordered by NN index
     let mut nn_lower_limit_target_positions_rad = Array2::<f32>::zeros((1, 20)); // 20 is the number of NN outputs/joints
     for (nn_index, lower_deg, _upper_deg) in NN_JOINT_LIMITS_DEGREES.iter() {
@@ -102,6 +126,30 @@ async fn move_to_limits(args: Args) -> Result<(), Box<dyn std::error::Error>> {
 
     tracing::info!("Finished moving to limits");
     tracing::info!("Moving to zero position...");
+
+    let mut start_commands = vec![];
+    if let Some(actuators) = &actuators {
+        let actuator_states = actuators
+            .get_actuators_state(kbot_actuator_ids.clone())
+            .await?;
+        for state in actuator_states {
+            start_commands.push(ActuatorCommand {
+                actuator_id: state.actuator_id as u32,
+                position: Some(state.position.unwrap_or(0.0)),
+                velocity: None,
+                torque: None,
+            });
+        }
+    } else {
+        for id in kbot_actuator_ids.clone() {
+            start_commands.push(ActuatorCommand {
+                actuator_id: id as u32,
+                position: Some(0.0),
+                velocity: None,
+                torque: None,
+            });
+        }
+    }
 
     let home_array = ndarray::Array2::zeros((1, NeuralNetworkRunner::get_action_size()));
     let home_commands = NeuralNetworkRunner::update_commands(home_array).await?;
