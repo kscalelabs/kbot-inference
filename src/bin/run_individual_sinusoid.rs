@@ -99,6 +99,7 @@ async fn move_to_zero(args: Args) -> Result<(), Box<dyn std::error::Error>> {
         tracing::info!("Moving actuator {} to sinusoid...", i);
         for t in 0..(args.duration * args.frequency) as u64 {
             let process_time = tokio::time::Instant::now();
+            let start_commands = get_start_commands(&actuators, &kbot_actuator_ids).await?;
             let mut target_commands =
                 ndarray::Array2::zeros((1, NeuralNetworkRunner::get_action_size()));
             target_commands[[0, i]] =
