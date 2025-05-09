@@ -11,9 +11,10 @@ use kbot::{
     actuators::ActuatorCommand, constants::NN_JOINT_LIMITS_DEGREES, initialize_hardware,
     initialize_logging, nn::NeuralNetworkRunner,
 };
+use ndarray::Array2;
 use std::time::Duration;
 
-#[derive(Parser, Debug)]
+#[derive(Parser, Debug, Clone)]
 #[command(author, version, about, long_about = None)]
 struct Args {
     /// Run without hardware access
@@ -61,13 +62,13 @@ async fn move_to_upper_limit(args: Args) -> Result<(), Box<dyn std::error::Error
     }
 
     // Target positions: upper joint limits in radians, ordered by NN index
-    let mut nn_upper_limit_target_positions_rad = [0.0f32; 20]; // 20 is the number of NN outputs/joints
+    let mut nn_upper_limit_target_positions_rad = Array2::<f32>::zeros((1, 20)); // 20 is the number of NN outputs/joints
     for (nn_index, _lower_deg, upper_deg) in NN_JOINT_LIMITS_DEGREES.iter() {
-        nn_upper_limit_target_positions_rad[*nn_index] = upper_deg.to_radians() * 0.95;
+        nn_upper_limit_target_positions_rad[[0, *nn_index]] = upper_deg.to_radians() * 0.75;
     }
 
     let upper_limit_commands =
-        NeuralNetworkRunner::update_commands(nn_upper_limit_target_positions_rad.to_vec()).await?;
+        NeuralNetworkRunner::update_commands(nn_upper_limit_target_positions_rad).await?;
     let target_loop_rate = 50.0;
 
     NeuralNetworkRunner::take_action_slowed(
@@ -114,13 +115,13 @@ async fn move_to_lower_limit(args: Args) -> Result<(), Box<dyn std::error::Error
     }
 
     // Target positions: lower joint limits in radians, ordered by NN index
-    let mut nn_lower_limit_target_positions_rad = [0.0f32; 20]; // 20 is the number of NN outputs/joints
+    let mut nn_lower_limit_target_positions_rad = Array2::<f32>::zeros((1, 20)); // 20 is the number of NN outputs/joints
     for (nn_index, lower_deg, _upper_deg) in NN_JOINT_LIMITS_DEGREES.iter() {
-        nn_lower_limit_target_positions_rad[*nn_index] = lower_deg.to_radians() * 0.95;
+        nn_lower_limit_target_positions_rad[[0, *nn_index]] = lower_deg.to_radians() * 0.75;
     }
 
     let lower_limit_commands =
-        NeuralNetworkRunner::update_commands(nn_lower_limit_target_positions_rad.to_vec()).await?;
+        NeuralNetworkRunner::update_commands(nn_lower_limit_target_positions_rad).await?;
     let target_loop_rate = 50.0;
 
     NeuralNetworkRunner::take_action_slowed(
@@ -139,7 +140,7 @@ async fn move_to_lower_limit(args: Args) -> Result<(), Box<dyn std::error::Error
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     initialize_logging().await;
     let args = Args::parse();
-    move_to_lower_limit(args).await;
-    move_to_upper_limit(args).await;
+    move_to_lower_limit(args.clone()).await;
+    move_to_upper_limit(args.clone()).await;
     Ok(())
 }
