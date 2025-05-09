@@ -8,43 +8,6 @@ use std::time::Duration;
 use tokio::task::JoinHandle;
 use tracing::{error, info};
 
-#[derive(Debug, Clone)]
-pub struct ImuValues {
-    pub accel_x: f64,
-    pub accel_y: f64,
-    pub accel_z: f64,
-    pub gyro_x: f64,
-    pub gyro_y: f64,
-    pub gyro_z: f64,
-    pub roll: f64,
-    pub pitch: f64,
-    pub yaw: f64,
-    pub quaternion_w: f64,
-    pub quaternion_x: f64,
-    pub quaternion_y: f64,
-    pub quaternion_z: f64,
-}
-
-impl Default for ImuValues {
-    fn default() -> Self {
-        Self {
-            accel_x: 0.0,
-            accel_y: 0.0,
-            accel_z: 0.0,
-            gyro_x: 0.0,
-            gyro_y: 0.0,
-            gyro_z: 0.0,
-            roll: 0.0,
-            pitch: 0.0,
-            yaw: 0.0,
-            quaternion_w: 0.0,
-            quaternion_x: 0.0,
-            quaternion_y: 0.0,
-            quaternion_z: 0.0,
-        }
-    }
-}
-
 const IMU_WRITE_TIMEOUT: Duration = Duration::from_secs(4);
 
 pub struct IMU {
