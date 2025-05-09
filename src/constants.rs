@@ -68,20 +68,20 @@ pub const HOME_POSITION: [(usize, f32); 20] = [
     (21, 0.0),   // right_shoulder_pitch_03
     (22, -10.0), // right_shoulder_roll_03
     (23, 0.0),   // right_shoulder_yaw_02
-    (24, 90.0),  // right_elbow_02
+    (24, 15.0),  // right_elbow_02
     (25, 0.0),   // right_wrist_00
     (11, 0.0),   // left_shoulder_pitch_03
     (12, 10.0),  // left_shoulder_roll_03
     (13, 0.0),   // left_shoulder_yaw_02
-    (14, -90.0), // left_elbow_02
+    (14, -15.0), // left_elbow_02
     (15, 0.0),   // left_wrist_00
     (41, -25.0), // right_hip_pitch_04
-    (42, 0.0),   // right_hip_roll_03
+    (42, -5.0),  // right_hip_roll_03
     (43, 0.0),   // right_hip_yaw_03
     (44, -50.0), // right_knee_04
     (45, 25.0),  // right_ankle_02
     (31, 25.0),  // left_hip_pitch_04
-    (32, 0.0),   // left_hip_roll_03
+    (32, 5.0),   // left_hip_roll_03
     (33, 0.0),   // left_hip_yaw_03
     (34, 50.0),  // left_knee_04
     (35, -25.0), // left_ankle_02
