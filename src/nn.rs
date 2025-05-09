@@ -103,6 +103,11 @@ impl NeuralNetworkRunner {
                 .map(|p| p * std::f64::consts::PI / 180.0)
                 .collect();
 
+            velocities = velocities
+                .iter()
+                .map(|v| v * std::f64::consts::PI / 180.0)
+                .collect::<Vec<_>>();
+
             // Create array and copy positions into it
             let mut result = [0.0; 40];
             result[..20].copy_from_slice(&positions);
