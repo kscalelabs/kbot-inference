@@ -20,16 +20,20 @@ async fn get_stats(args: Args) -> Result<(), Box<dyn std::error::Error>> {
         Some(imu) => {
             let values = imu.get_values().await?;
             println!("  Connected: Yes");
-            println!("  Roll: {:.2}°", values.roll);
-            println!("  Pitch: {:.2}°", values.pitch);
-            println!("  Yaw: {:.2}°", values.yaw);
+            println!("  Roll: {:.2}°", values.euler.unwrap_or_default().x);
+            println!("  Pitch: {:.2}°", values.euler.unwrap_or_default().y);
+            println!("  Yaw: {:.2}°", values.euler.unwrap_or_default().z);
             println!(
                 "  Acceleration: ({:.2}, {:.2}, {:.2}) m/s²",
-                values.accel_x, values.accel_y, values.accel_z
+                values.accelerometer.unwrap_or_default().x,
+                values.accelerometer.unwrap_or_default().y,
+                values.accelerometer.unwrap_or_default().z
             );
             println!(
                 "  Angular Velocity: ({:.2}, {:.2}, {:.2}) °/s",
-                values.gyro_x, values.gyro_y, values.gyro_z
+                values.gyroscope.unwrap_or_default().x,
+                values.gyroscope.unwrap_or_default().y,
+                values.gyroscope.unwrap_or_default().z
             );
         }
         None => println!("  Connected: No"),

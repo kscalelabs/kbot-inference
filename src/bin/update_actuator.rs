@@ -48,6 +48,7 @@ async fn update_actuator_id(args: Args) -> Result<(), Box<dyn std::error::Error>
                 actuator_type: ActuatorType::RobStride03,
                 max_angle_change: Some(args.max_angle_change),
                 max_velocity: Some(args.max_velocity),
+                command_rate_hz: Some(100.0),
             },
         )],
     )

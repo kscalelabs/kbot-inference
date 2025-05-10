@@ -330,188 +330,190 @@ impl Actuator {
     }
 
     pub fn create_kbot_actuators() -> Vec<(u8, ActuatorConfiguration)> {
+        // Load this from the config
         let max_angle_change = 5.0f32; // Percent
         let max_velocity = 10.0f32.to_radians();
+        let command_rate_hz = 50.0f32; // Hz
 
         vec![
-            // Left Arm (11-16)
             (
-                11,
+                11, // left_shoulder_pitch_03
                 ActuatorConfiguration {
                     actuator_type: ActuatorType::RobStride03,
                     max_angle_change: Some(max_angle_change),
                     max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(command_rate_hz),
                 },
             ),
             (
-                12,
+                12, // left_shoulder_roll_03
                 ActuatorConfiguration {
                     actuator_type: ActuatorType::RobStride03,
                     max_angle_change: Some(max_angle_change),
                     max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(command_rate_hz),
                 },
             ),
             (
-                13,
+                13, // left_shoulder_yaw_02
                 ActuatorConfiguration {
                     actuator_type: ActuatorType::RobStride02,
                     max_angle_change: Some(max_angle_change),
                     max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(command_rate_hz),
                 },
             ),
             (
-                14,
+                14, // left_elbow_02
                 ActuatorConfiguration {
                     actuator_type: ActuatorType::RobStride02,
                     max_angle_change: Some(max_angle_change),
                     max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(command_rate_hz),
                 },
             ),
             (
-                15,
+                15, // left_wrist_00
                 ActuatorConfiguration {
-                    actuator_type: ActuatorType::RobStride02,
+                    actuator_type: ActuatorType::RobStride00,
                     max_angle_change: Some(max_angle_change),
                     max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(command_rate_hz),
                 },
             ),
-            // (
-            //     16,
-            //     ActuatorConfiguration {
-            //         actuator_type: ActuatorType::RobStride00,
-            //         max_angle_change: Some(30.0f32.to_radians()),
-            //         max_velocity: Some(10.0f32.to_radians()),
-            //     },
-            // ),
-            // Right Arm (21-26)
             (
-                21,
+                21, // right_shoulder_pitch_03
                 ActuatorConfiguration {
                     actuator_type: ActuatorType::RobStride03,
                     max_angle_change: Some(max_angle_change),
                     max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(command_rate_hz),
                 },
             ),
             (
-                22,
+                22, // right_shoulder_roll_03
                 ActuatorConfiguration {
                     actuator_type: ActuatorType::RobStride03,
                     max_angle_change: Some(max_angle_change),
                     max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(command_rate_hz),
                 },
             ),
             (
-                23,
+                23, // right_shoulder_yaw_02
                 ActuatorConfiguration {
                     actuator_type: ActuatorType::RobStride02,
                     max_angle_change: Some(max_angle_change),
                     max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(command_rate_hz),
                 },
             ),
             (
-                24,
+                24, // right_elbow_02
                 ActuatorConfiguration {
                     actuator_type: ActuatorType::RobStride02,
                     max_angle_change: Some(max_angle_change),
                     max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(command_rate_hz),
                 },
             ),
             (
-                25,
+                25, // right_wrist_00
                 ActuatorConfiguration {
-                    actuator_type: ActuatorType::RobStride02,
+                    actuator_type: ActuatorType::RobStride00,
                     max_angle_change: Some(max_angle_change),
                     max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(command_rate_hz),
                 },
             ),
-            // (
-            //     26,
-            //     ActuatorConfiguration {
-            //         actuator_type: ActuatorType::RobStride00,
-            //         max_angle_change: Some(30.0f32.to_radians()),
-            //         max_velocity: Some(10.0f32.to_radians()),
-            //     },
-            // ),
-            // Left Leg (31-35)
             (
-                31,
+                31, // left_hip_pitch_04
                 ActuatorConfiguration {
                     actuator_type: ActuatorType::RobStride04,
                     max_angle_change: Some(max_angle_change),
                     max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(command_rate_hz),
                 },
             ),
             (
-                32,
+                32, // left_hip_roll_03
                 ActuatorConfiguration {
                     actuator_type: ActuatorType::RobStride03,
                     max_angle_change: Some(max_angle_change),
                     max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(command_rate_hz),
                 },
             ),
             (
-                33,
+                33, // left_hip_yaw_03
                 ActuatorConfiguration {
                     actuator_type: ActuatorType::RobStride03,
                     max_angle_change: Some(max_angle_change),
                     max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(command_rate_hz),
                 },
             ),
             (
-                34,
+                34, // left_knee_04
                 ActuatorConfiguration {
                     actuator_type: ActuatorType::RobStride04,
                     max_angle_change: Some(max_angle_change),
                     max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(command_rate_hz),
                 },
             ),
             (
-                35,
+                35, // left_ankle_02
                 ActuatorConfiguration {
                     actuator_type: ActuatorType::RobStride02,
                     max_angle_change: Some(max_angle_change),
                     max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(command_rate_hz),
                 },
             ),
-            // Right Leg (41-45)
             (
-                41,
+                41, // right_hip_pitch_04
                 ActuatorConfiguration {
                     actuator_type: ActuatorType::RobStride04,
                     max_angle_change: Some(max_angle_change),
                     max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(command_rate_hz),
                 },
             ),
             (
-                42,
+                42, // right_hip_roll_03
                 ActuatorConfiguration {
                     actuator_type: ActuatorType::RobStride03,
                     max_angle_change: Some(max_angle_change),
                     max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(command_rate_hz),
                 },
             ),
             (
-                43,
+                43, // right_hip_yaw_03
                 ActuatorConfiguration {
                     actuator_type: ActuatorType::RobStride03,
                     max_angle_change: Some(max_angle_change),
                     max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(command_rate_hz),
                 },
             ),
             (
-                44,
+                44, // right_knee_04
                 ActuatorConfiguration {
                     actuator_type: ActuatorType::RobStride04,
                     max_angle_change: Some(max_angle_change),
                     max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(command_rate_hz),
                 },
             ),
             (
-                45,
+                45, // right_ankle_02
                 ActuatorConfiguration {
                     actuator_type: ActuatorType::RobStride02,
                     max_angle_change: Some(max_angle_change),
                     max_velocity: Some(max_velocity),
+                    command_rate_hz: Some(command_rate_hz),
                 },
             ),
         ]
