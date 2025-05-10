@@ -87,27 +87,26 @@ pub const HOME_POSITION: [(usize, f32); 20] = [
     (35, -25.0), // left_ankle_02
 ];
 
-// The commented-out values are the original URDF joint limits - I am
-// adding software limits here to avoid some hardware failures.
+// Software joint limits in degrees
 pub const NN_JOINT_LIMITS_DEGREES: [(usize, f32, f32); 20] = [
-    (0, -180.00001984784282, 79.99997699027486), // right_shoulder_pitch_03
-    (1, -95.00001206679983, 20.000008571513593), // right_shoulder_roll_03
-    (2, -95.00001206679983, 95.00001206679983),  // right_shoulder_yaw_02
-    (3, 0.0, 142.00002648027882),                // right_elbow_02
-    (4, -99.99998556178845, 99.99998556178845),  // right_wrist_00
-    (5, -79.99997699027486, 180.00001984784282), // left_shoulder_pitch_03
-    (6, -20.000008571513593, 95.00001206679983), // left_shoulder_roll_03
-    (7, -95.00001206679983, 95.00001206679983),  // left_shoulder_yaw_02
-    (8, -142.00002648027882, 0.0),               // left_elbow_02
-    (9, -99.99998556178845, 99.99998556178845),  // left_wrist_00
-    (10, -126.99999140375387, 60.00002571454079), // right_hip_pitch_04
-    (11, -129.99999841905884, 12.000028061219961), // right_hip_roll_03
-    (12, -89.99998127603166, 89.99998127603166), // right_hip_yaw_03
-    (13, -154.99998048556108, 0.0),              // right_knee_04
-    (14, -13.000011301061788, 71.99999647998123), // right_ankle_02
-    (15, -60.00002571454079, 126.99999140375387), // left_hip_pitch_04
-    (16, -12.000028061219961, 129.99999841905884), // left_hip_roll_03
-    (17, -89.99998127603166, 89.99998127603166), // left_hip_yaw_03
-    (18, 0.0, 154.99998048556108),               // left_knee_04
-    (19, -71.99999647998123, 13.000011301061788), // left_ankle_02
+    (0, -180.0, 80.0),  // right_shoulder_pitch_03
+    (1, -95.0, 20.0),   // right_shoulder_roll_03
+    (2, -95.0, 95.0),   // right_shoulder_yaw_02
+    (3, 0.0, 142.0),    // right_elbow_02
+    (4, -100.0, 100.0), // right_wrist_00
+    (5, -80.0, 180.0),  // left_shoulder_pitch_03
+    (6, -20.0, 95.0),   // left_shoulder_roll_03
+    (7, -95.0, 95.0),   // left_shoulder_yaw_02
+    (8, -142.0, 0.0),   // left_elbow_02
+    (9, -100.0, 100.0), // left_wrist_00
+    (10, -127.0, 60.0), // right_hip_pitch_04
+    (11, -129.0, 12.0), // right_hip_roll_03
+    (12, -90.0, 90.0),  // right_hip_yaw_03
+    (13, -155.0, 0.0),  // right_knee_04
+    (14, -13.0, 72.0),  // right_ankle_02
+    (15, -60.0, 127.0), // left_hip_pitch_04
+    (16, -12.0, 129.0), // left_hip_roll_03
+    (17, -90.0, 90.0),  // left_hip_yaw_03
+    (18, 0.0, 155.0),   // left_knee_04
+    (19, -72.0, 13.0),  // left_ankle_02
 ];
